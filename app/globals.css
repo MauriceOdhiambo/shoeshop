@@ -27,3 +27,26 @@
 .analysis-stats{grid-template-columns:repeat(4,minmax(0,1fr));margin:10px 0 22px}
 .admin-content table th,.admin-content table td{white-space:nowrap}
 @media(max-width:850px){.password-form{grid-template-columns:1fr}.analysis-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.content-actions{justify-content:flex-start}}
+
+/* Account security dialog: focused, accessible and visually consistent with the dark admin workspace. */
+.security-modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(3,8,12,.78);backdrop-filter:blur(7px);display:grid;place-items:center;padding:20px;animation:securityFadeIn .16s ease-out}
+.security-modal{width:min(100%,500px);max-height:min(92vh,760px);overflow:auto;background:#151f27;border:1px solid #34434d;border-radius:18px;padding:28px;box-shadow:0 28px 90px rgba(0,0,0,.55);color:#edf2f4;animation:securityRiseIn .2s ease-out}
+.security-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.security-icon{width:46px;height:46px;border-radius:13px;background:#2b3942;color:#e5b58e;display:grid;place-items:center;font-size:25px}
+.security-close{width:36px;height:36px;border:1px solid #3a4a55;border-radius:10px;background:#202d36;color:#dce5e9;font-size:23px;line-height:1;cursor:pointer}
+.security-modal h2{font:800 25px Manrope,sans-serif;letter-spacing:-.7px;color:#f5f7f8;margin:8px 0}
+.security-modal>.muted{color:#9aa8b1;margin:0 0 22px}
+.security-form{display:block}
+.security-form .field{margin:15px 0}
+.security-form .field label{display:block;color:#c4cfd5;font-size:12px;font-weight:700;margin-bottom:7px}
+.security-form .field input{width:100%;min-width:0;padding:13px 14px;border-radius:9px;background:#0d161c;border:1px solid #354651;color:#f3f6f7;outline:none}
+.security-form .field input:focus{border-color:#c58b5c;box-shadow:0 0 0 3px rgba(197,139,92,.15)}
+.security-form .field input::placeholder{color:#71808a}
+.security-hint{display:block;color:#82919a;font-size:10px;margin-top:7px}
+.security-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:23px;padding-top:18px;border-top:1px solid #2b3942}
+.security-actions button{padding:11px 16px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer}
+.security-cancel{background:#25333c;border:1px solid #3a4a55;color:#dce5e9}
+.security-actions .btn{border:0}
+@keyframes securityFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes securityRiseIn{from{opacity:0;transform:translateY(9px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:560px){.security-modal{padding:22px 18px;border-radius:15px}.security-modal h2{font-size:22px}.security-actions{flex-direction:column-reverse}.security-actions button{width:100%}}

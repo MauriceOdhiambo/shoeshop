@@ -32,3 +32,10 @@ Follow `docs/DRIVE-UPLOAD-SETUP.md` to create the `Shoe Studio Photos` folder, d
 The app adds these optional columns to the end of the Inventory header row if missing: `Hot Sale`, `Sale Price`, and `Reserved Date`. Existing inventory columns and rows are retained. Available stock is sorted first, then Reserved, then Sold; Hot Sale items are promoted within each status group. Sold and Reserved items cannot be booked from the public shop. Admins can edit status, actual sold price, Hot Sale flag and promotional sale price in the inventory table.
 
 When changing a shoe to `Sold`, enter its actual sold price before saving. The app calculates the profit margin from the sold price and buying price. Marking an item `Reserved` records the reservation date; returning it to `Available` clears that date.
+
+## Follow-up fix: product photo required and legacy ID format restored
+
+- New inventory records now use the established `SHOE-<13-digit timestamp>` ID format (for example `SHOE-1790782470578`) instead of UUID-based IDs.
+- The Add Shoe form requires a successful Google Drive photo upload before it can be saved.
+- The inventory API also rejects a new shoe record if its Picture link is empty, preventing placeholder-only listings caused by saving without an uploaded photo.
+- Existing shoe IDs and existing inventory rows are not rewritten.

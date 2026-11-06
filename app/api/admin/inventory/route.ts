@@ -45,8 +45,15 @@ export async function POST(req: NextRequest) {
     const rows = await readRows('Inventory');
     const c = columns(headers);
     const batch = rows.slice(1).reduce((m, r) => Math.max(m, Number(r[c.stock]) || 0), 0) + 1;
+    const picture = String(b.picture ?? '').trim();
+    if (!picture) return NextResponse.json({ success: false, message: 'Upload a shoe photo to Google Drive before saving this item.' }, { status: 400 });
     const row = Array(Math.max(headers.length, 16)).fill('');
-    row[c.id] = `SHOE-${crypto.randomUUID()}`; row[c.picture] = String(b.picture ?? ''); row[c.buying] = buy; row[c.size] = size;
+    // Keep the established Shoe Studio ID format: SHOE-<13-digit timestamp>.
+    // Advance by 1ms if an item was already created in the same millisecond.
+    let idTimestamp = Date.now();
+    const existingIds = new Set(rows.slice(1).map((r) => String(r[c.id] ?? '')));
+    while (existingIds.has(`SHOE-${idTimestamp}`)) idTimestamp += 1;
+    row[c.id] = `SHOE-${idTimestamp}`; row[c.picture] = picture; row[c.buying] = buy; row[c.size] = size;
     row[c.target] = target; row[c.status] = 'Available'; row[c.comment] = String(b.comment ?? ''); row[c.category] = String(b.category ?? 'General'); row[c.stock] = Number(b.stockType) || batch;
     row[c.hot] = b.hotSale ? 'TRUE' : 'FALSE'; row[c.sale] = Number(b.salePrice) || 0;
     await appendRow('Inventory', row);

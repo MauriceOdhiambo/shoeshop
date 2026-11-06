@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoe Shop</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--p:#e94560;--pd:#c73650;--d:#1a1a2e;--bg:#f5f5f7;--txt:#222;--mut:#888;--bd:#e5e5e5}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;min-height:100vh}
+header{background:var(--d);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+header h1{font-size:1.1rem;font-weight:700}
+header button{background:var(--p);color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem}
+header button:hover{background:var(--pd)}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+@media(min-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;background:#eee}
+.card-body{padding:12px;display:flex;flex-direction:column;flex:1}
+.price{color:var(--p);font-weight:700;font-size:1.1rem}
+.btn{background:var(--p);color:#fff;border:none;padding:12px 16px;border-radius:8px;cursor:pointer;width:100%;font-weight:600;font-size:.9rem;font-family:inherit}
+.btn:hover{background:var(--pd)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-sec{background:#9ca3af}
+.btn-sm{padding:6px 10px;font-size:.72rem;width:auto;border-radius:6px}
+.btn-edit{background:#3b82f6}
+.btn-edit:hover{background:#2563eb}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.8rem;font-weight:600;color:#444;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:.95rem;font-family:inherit;background:#fff}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--p)}
+.filters{background:#fff;padding:14px;border-radius:12px;margin-bottom:16px;display:grid;grid-template-columns:1fr;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+@media(min-width:800px){.filters{grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:end}}
+.filters .field{margin-bottom:0}
+.filters .btn{width:auto;padding:12px 20px}
+.login-wrapper{min-height:calc(100vh - 70px);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:#fff;padding:32px 24px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.08);width:100%;max-width:400px}
+.login-box .logo{text-align:center;font-size:2.5rem;margin-bottom:8px}
+.login-box h2{text-align:center;font-size:1.4rem;margin-bottom:4px}
+.login-box .sub{text-align:center;color:var(--mut);font-size:.85rem;margin-bottom:24px}
+.err{color:#ef4444;margin-top:12px;text-align:center;font-size:.85rem;min-height:20px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--bd);overflow-x:auto}
+.tab{padding:10px 14px;cursor:pointer;border:none;background:transparent;font-weight:600;color:var(--mut);white-space:nowrap;font-size:.85rem;font-family:inherit}
+.tab.active{color:var(--p);border-bottom:2px solid var(--p);margin-bottom:-2px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
+.stat{background:#fff;padding:14px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+.stat h4{font-size:.7rem;color:var(--mut);text-transform:uppercase;margin-bottom:4px}
+.stat p{font-size:1.3rem;font-weight:700}
+.table-scroll{overflow-x:auto;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.05);background:#fff}
+table{width:100%;border-collapse:collapse;background:#fff;min-width:600px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #eee;font-size:.82rem;white-space:nowrap}
+th{background:var(--d);color:#fff;font-weight:600}
+td img{width:40px;height:40px;object-fit:cover;border-radius:4px;display:block}
+.s-Available{color:#10b981;font-weight:600}
+.s-Reserved{color:#f59e0b;font-weight:600}
+.s-Sold{color:#ef4444;font-weight:600}
+.form-card{background:#fff;padding:20px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);max-width:640px;margin:0 auto}
+@media(min-width:600px){.form-card{padding:28px}}
+.form-card h3{margin-bottom:20px;font-size:1.1rem;padding-bottom:12px;border-bottom:2px solid var(--bd)}
+.row2{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:600px){.row2{grid-template-columns:1fr 1fr;gap:14px}}
+.upload-area{border:2px dashed #ccc;border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;background:#fafafa;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.upload-area:hover{border-color:var(--p);background:#fff5f7}
+.upload-area .ic{font-size:2rem;margin-bottom:8px}
+.upload-area .tx{color:var(--mut);font-size:.85rem}
+.upload-area img{max-width:100%;max-height:220px;border-radius:8px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.modal.active{display:flex}
+.modal-content{background:#fff;border-radius:16px;padding:24px 20px;max-width:520px;width:100%;max-height:92vh;overflow-y:auto;position:relative}
+.modal-close{position:absolute;top:12px;right:12px;background:#f0f0f0;border:none;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center;line-height:1}
+.modal-content h2{margin-bottom:16px;font-size:1.2rem;padding-right:40px}
+.chart-box{background:#fff;padding:16px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+.chart-box h3{margin-bottom:12px;font-size:.9rem}
+.chart-wrap{position:relative;width:100%;height:220px}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
+@media(min-width:700px){.chart-grid{grid-template-columns:1fr 1fr}}
+.hidden{display:none!important}
+.empty{text-align:center;padding:40px;color:var(--mut);font-size:.9rem}
+.msg{margin-top:10px;text-align:center;font-size:.85rem;min-height:20px}
+.msg-ok{color:#10b981}.msg-bad{color:#ef4444}.msg-i{color:var(--mut)}
+.tags-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;min-height:24px}
+.cat-tag{display:inline-block;background:#1a1a2e;color:#fff;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:600;letter-spacing:.3px;line-height:1.3}
+.badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:700;letter-spacing:.4px;line-height:1.3;text-transform:uppercase}
+.badge-available{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.badge-reserved{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.badge-sold{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.badge-hot{background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;animation:pulseHot 2s infinite}
+@keyframes pulseHot{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,.6)}50%{box-shadow:0 0 0 8px rgba(244,63,94,0)}}
+.card-hot{border:1.5px solid #fecdd3;box-shadow:0 4px 14px rgba(244,63,94,.12)}
+.shoe-size{font-size:1.05rem;font-weight:700;color:#1a1a2e;margin:6px 0 4px;letter-spacing:-.2px}
+.shoe-id{font-size:.7rem;color:#b0b0b8;letter-spacing:.2px;margin-top:2px}
+.card-btn-wrap{margin-top:auto;padding-top:12px}
+.card-reserved{position:relative;box-shadow:0 2px 8px rgba(245,158,11,.15)}
+.card-reserved::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(251,191,36,.08),rgba(251,191,36,.02));pointer-events:none;z-index:1;border-radius:12px}
+.card-reserved .card-body{position:relative;z-index:2}
+.card-sold{opacity:.85}
+.card-sold img{filter:grayscale(.75) brightness(.92)}
+.card-sold .price{color:#991b1b;text-decoration:line-through;text-decoration-thickness:2px;opacity:.7}
+.card-sold h3{opacity:.85}
+.img-wrap{position:relative;overflow:hidden}
+.status-ribbon{position:absolute;top:14px;right:-36px;transform:rotate(45deg);padding:6px 44px;font-size:.68rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:3}
+.status-ribbon.sold{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.status-ribbon.reserved{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.card .img-wrap{cursor:zoom-in}
+.card .img-wrap img{transition:transform .3s ease}
+@media(hover:hover){.card .img-wrap:hover img{transform:scale(1.03)}}
+.lightbox{position:fixed;inset:0;background:rgba(10,10,20,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.lightbox.active{opacity:1;pointer-events:auto}
+.lightbox-inner{max-width:95vw;max-height:90vh;display:flex;align-items:center;justify-content:center;transform:scale(.94);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.lightbox.active .lightbox-inner{transform:scale(1)}
+.lightbox-inner img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:block;user-select:none;-webkit-user-drag:none}
+.lightbox-close{position:absolute;top:16px;right:16px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);font-size:1.6rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:2}
+.lightbox-close:hover{background:rgba(255,255,255,.3)}
+.lightbox-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:.78rem;background:rgba(0,0,0,.4);padding:6px 14px;border-radius:20px;letter-spacing:.3px;pointer-events:none}
+@media(max-width:600px){.lightbox-hint{font-size:.7rem}.lightbox-close{top:12px;right:12px;width:40px;height:40px;font-size:1.4rem}}
+.enquiry-note{background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;border-radius:6px;font-size:.8rem;color:#9a3412;margin-bottom:16px;line-height:1.4}
+.table-empty{text-align:center;padding:40px;color:#888;font-size:.9rem}
+.debug-bar{background:#fef3c7;border:1px solid #fcd34d;padding:8px 14px;border-radius:8px;margin-bottom:12px;font-size:.8rem;color:#92400e}
+.debug-bar.ok{background:#d1fae5;border-color:#a7f3d0;color:#065f46}
+.debug-bar.err{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#128095; Shoe Shop</h1>
+  <div>
+    <button id="adminBtn" type="button">Admin</button>
+    <button id="logoutBtn" class="hidden" type="button">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- CUSTOMER VIEW -->
+  <div id="customerView">
+    <div class="filters">
+      <div class="field"><label>Search</label><input type="text" id="searchBox" placeholder="Size or category..."></div>
+      <div class="field"><label>Category</label><select id="filterCategory"><option value="">All Categories</option></select></div>
+      <div class="field"><label>Size</label><select id="filterSize"><option value="">All Sizes</option></select></div>
+      <div class="field"><label>Max Price</label><input type="number" id="filterMaxPrice" placeholder="e.g. 700"></div>
+      <div><button class="btn btn-sec" type="button" id="resetBtn">Reset</button></div>
+    </div>
+    <div id="customerGrid" class="grid"></div>
+  </div>
+
+  <!-- LOGIN VIEW -->
+  <div id="loginView" class="hidden">
+    <div class="login-wrapper">
+      <div class="login-box">
+        <div class="logo">&#128274;</div>
+        <h2>Admin Login</h2>
+        <p class="sub">Sign in to manage your shoe inventory</p>
+        <div class="field"><label>Username or Email</label><input type="text" id="loginEmail" autocomplete="username"></div>
+        <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+        <button class="btn" type="button" id="loginBtn">Login</button>
+        <p id="loginError" class="err"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="adminView" class="hidden">
+    <div class="tabs">
+      <button class="tab active" type="button" data-tab="dash">Dashboard</button>
+      <button class="tab" type="button" data-tab="inv">Inventory</button>
+      <button class="tab" type="button" data-tab="orders">Orders</button>
+      <button class="tab" type="button" data-tab="add">Add Shoe</button>
+    </div>
+
+    <div id="tab-dash">
+      <div class="stat-grid" id="statsGrid"></div>
+      <div class="chart-box"><h3>Sales - Last 7 Days</h3><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
+      <div class="chart-grid">
+        <div class="chart-box"><h3>Inventory Status</h3><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
+        <div class="chart-box"><h3>Sales by Category</h3><div class="chart-wrap"><canvas id="categoryChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="tab-inv" class="hidden">
+      <div class="filters">
+        <div class="field"><label>Search</label><input type="text" id="adminSearch" placeholder="ID or size..."></div>
+        <div class="field"><label>Status</label><select id="statusFilter"><option value="">All</option><option>Available</option><option>Reserved</option><option>Sold</option></select></div>
+        <div class="field"><label>Category</label><select id="adminCatFilter"><option value="">All</option></select></div>
+        <div class="field"><label>Stock #</label><input type="number" id="adminStockFilter"></div>
+      </div>
+      <div id="invDebug" class="debug-bar">Loading inventory...</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Pic</th><th>Buy</th><th>Size</th><th>Target</th>
+            <th>Status</th><th>Payment</th><th>Sold</th><th>Margin</th>
+            <th>Category</th><th>Stock #</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="adminTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-orders" class="hidden">
+      <p style="font-size:.85rem;color:#666;margin-bottom:12px">Booking enquiries appear here.</p>
+      <div id="ordDebug" class="debug-bar">Loading orders...</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Order ID</th><th>Shoe</th><th>Name</th><th>Phone</th><th>Location</th>
+            <th>Comment</th><th>Date</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="ordersTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-add" class="hidden">
+      <div class="form-card">
+        <h3>Add New Shoe</h3>
+        <div class="field">
+          <label>Shoe Picture</label>
+          <div class="upload-area" id="uploadArea">
+            <div id="uploadPrompt"><div class="ic">&#128248;</div><div class="tx">Tap to upload image from your device</div></div>
+            <img id="imgPreview" class="hidden">
+          </div>
+          <input type="file" id="imgFile" accept="image/*" class="hidden">
+          <p id="uploadStatus" class="msg"></p>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Buying Price (hidden)</label><input type="number" id="addBuy" placeholder="300"></div>
+          <div class="field"><label>Size</label><input type="number" step="0.5" id="addSize" placeholder="42"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Target Price (visible)</label><input type="number" id="addTarget" placeholder="700"></div>
+          <div class="field"><label>Category</label><select id="addCategory"><option>Running</option><option>Sneakers</option><option>Formal</option><option>Casual</option><option>Sports</option><option>Kids</option><option>General</option></select></div>
+        </div>
+        <div class="field"><label for="addStockType">Stock #</label><input type="number" id="addStockType" placeholder="Leave blank for a new batch" min="1" step="1"><small>Leave blank to create the next stock batch automatically.</small></div>
+        <div class="field"><label>Comment (internal)</label><textarea id="addComment" rows="2"></textarea></div>
+        <button class="btn" type="button" id="addShoeBtn">Add Shoe</button>
+        <p id="addMsg" class="msg"></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOOKING MODAL -->
+<div id="bookingModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" type="button" id="bkClose">&times;</button>
+    <h2>Book This Shoe</h2>
+    <p id="bkInfo" style="color:#888;margin-bottom:12px;font-size:.85rem"></p>
+    <div class="enquiry-note">ℹ️ <b>How it works:</b> After you submit, we'll call you to confirm.</div>
+    <div class="field"><label>Your Name *</label><input type="text" id="bkName"></div>
+    <div class="field"><label>Phone *</label><input type="tel" id="bkPhone"></div>
+    <div class="field"><label>Location *</label><input type="text" id="bkLocation"></div>
+    <div class="field"><label>Comment</label><textarea id="bkComment" rows="2"></textarea></div>
+    <button class="btn" type="button" id="bkSubmit">Send Booking Request</button>
+    <p id="bkMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" type="button" id="editClose">&times;</button>
+    <h2>✏️ Edit Shoe</h2>
+    <p id="editShoeId" style="color:#888;margin-bottom:16px;font-size:.85rem"></p>
+    <div class="field"><label>Picture URL</label><input type="text" id="editPicture"></div>
+    <div class="field"><label>Buying Price</label><input type="number" id="editBuy"></div>
+    <div class="field"><label>Size</label><input type="number" step="0.5" id="editSize"></div>
+    <div class="field"><label>Target Price</label><input type="number" id="editTarget"></div>
+    <div class="field"><label>Status</label><select id="editStatus"><option>Available</option><option>Reserved</option><option>Sold</option></select></div>
+    <div class="field"><label>Payment</label><input type="text" id="editPayment"></div>
+    <div class="field"><label>Price Sold</label><input type="number" id="editSold"></div>
+    <div class="field"><label>Category</label><select id="editCategory"><option>Running</option><option>Sneakers</option><option>Formal</option><option>Casual</option><option>Sports</option><option>Kids</option><option>General</option></select></div>
+    <div class="field"><label>Stock #</label><input type="number" id="editStock" min="1"></div>
+    <div class="field"><label>Comment</label><textarea id="editComment" rows="2"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-sec" type="button" id="editCancel" style="flex:1">Cancel</button>
+      <button class="btn" type="button" id="editSave" style="flex:2">Save</button>
+    </div>
+    <p id="editMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" class="lightbox">
+  <button class="lightbox-close" type="button" id="lightboxClose">&times;</button>
+  <div class="lightbox-inner"><img id="lightboxImg" src="" alt=""></div>
+  <div class="lightbox-hint">Double-tap or press Esc to close</div>
+</div>
+
+<script>
+(function(){
+  window.addEventListener('error', function(e){
+    console.error('JS ERROR:', e.message, 'line', e.lineno);
+    var d = document.getElementById('invDebug');
+    if (d){ d.className = 'debug-bar err'; d.textContent = '❌ JS Error: ' + e.message; }
+  });
+
+  var CURRENCY = 'KSh';
+  var allShoes = [];
+  var adminData = [];
+  var adminCreds = null;
+  var selectedShoe = null;
+  var uploadedImageUrl = '';
+  var charts = {};
+  var editingShoe = null;
+
+  function $(id){ return document.getElementById(id); }
+  function show(el){ if(el) el.classList.remove('hidden'); }
+  function hide(el){ if(el) el.classList.add('hidden'); }
+  function esc(s){ return String(s == null ? '' : s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ================= CUSTOMER =================
+  function loadCustomerInventory(){
+    google.script.run
+      .withSuccessHandler(function(shoes){
+        allShoes = shoes || [];
+        renderCustomerGrid();
+      })
+      .withFailureHandler(function(e){ console.error('getPublicInventory', e); })
+      .getPublicInventory();
+  }
+
+  function loadFilterOptions(){
+    google.script.run
+      .withSuccessHandler(function(opts){
+        var cS = $('filterCategory'), sS = $('filterSize');
+        if (!cS || !sS) return;
+        cS.innerHTML = '<option value="">All Categories</option>';
+        (opts.categories || []).forEach(function(c){
+          var o = document.createElement('option'); o.textContent = c; cS.appendChild(o);
+        });
+        sS.innerHTML = '<option value="">All Sizes</option>';
+        (opts.sizes || []).forEach(function(s){
+          var o = document.createElement('option'); o.textContent = s; sS.appendChild(o);
+        });
+      })
+      .withFailureHandler(function(e){ console.error(e); })
+      .getFilterOptions();
+  }
+
+  function renderCustomerGrid(){
+    var grid = $('customerGrid');
+    var search = ($('searchBox').value || '').toLowerCase();
+    var cat = $('filterCategory').value;
+    var size = $('filterSize').value;
+    var maxPrice = Number($('filterMaxPrice').value) || Infinity;
+
+    var filtered = allShoes.filter(function(s){
+      // Customer shop displays the newest stock batch returned by the backend.
+      // Sold shoes from that current batch remain visible until a newer stock
+      // batch is uploaded.
+      var sL = String(s.status || '').toLowerCase();
+      if (sL !== 'available' && sL !== 'reserved' && sL !== 'sold') return false;
+
+      var okS = !search || String(s.size).indexOf(search) !== -1 || (s.category || '').toLowerCase().indexOf(search) !== -1;
+      var okC = !cat || s.category === cat;
+      var okZ = !size || String(s.size) === String(size);
+      var okP = Number(s.targetPrice) <= maxPrice;
+      return okS && okC && okZ && okP;
+    });
+
+    var order = { 'available': 1, 'reserved': 2, 'sold': 3 };
+    filtered.sort(function(a, b){
+      var aH = a.isHot && a.status === 'Available' ? 0 : order[(a.status || '').toLowerCase()] || 4;
+      var bH = b.isHot && b.status === 'Available' ? 0 : order[(b.status || '').toLowerCase()] || 4;
+      return aH - bH;
+    });
+
+    if (filtered.length === 0){
+      grid.innerHTML = '<div class="empty">No stock is currently available. Add a new stock batch to display shoes here.</div>';
+      return;
+    }
+
+    var html = '';
+    filtered.forEach(function(s){
+      var pic = s.picture || 'https://via.placeholder.com/400x300?text=No+Image';
+      var sL = (s.status || '').toLowerCase();
+      var sBadge = '';
+      if (sL === 'available') sBadge = '<span class="badge badge-available">&#10003; Available</span>';
+      else if (sL === 'reserved') sBadge = '<span class="badge badge-reserved">&#9203; Booked</span>';
+      else if (sL === 'sold') sBadge = '<span class="badge badge-sold">&#10006; Sold Out</span>';
+      var hBadge = (s.isHot && sL === 'available') ? '<span class="badge badge-hot">&#128293; Hot</span>' : '';
+      var ribbon = '';
+      if (sL === 'reserved') ribbon = '<div class="status-ribbon reserved">Booked</div>';
+      else if (sL === 'sold') ribbon = '<div class="status-ribbon sold">Sold Out</div>';
+      var cls = 'card';
+      if (sL === 'reserved') cls += ' card-reserved';
+      else if (sL === 'sold') cls += ' card-sold';
+      else if (s.isHot) cls += ' card-hot';
+      var btnHtml;
+      if (sL === 'available') btnHtml = '<button class="btn" type="button" data-book="' + esc(s.id) + '">Book Now</button>';
+      else if (sL === 'reserved') btnHtml = '<button class="btn btn-sec" type="button" disabled>Already Booked</button>';
+      else btnHtml = '<button class="btn btn-sec" type="button" disabled>Sold Out</button>';
+
+      html += '<div class="' + cls + '">';
+      html += '<div class="img-wrap">';
+      html += '<img src="' + esc(pic) + '" data-zoom="' + esc(pic) + '" onerror="this.src=\'https://via.placeholder.com/400x300?text=No+Image\'">';
+      html += ribbon + '</div>';
+      html += '<div class="card-body">';
+      html += '<div class="tags-row"><span class="cat-tag">' + esc(s.category || 'General') + '</span>' + hBadge + sBadge + '</div>';
+      html += '<h3 class="shoe-size">Size ' + esc(s.size) + '</h3>';
+      html += '<p class="price">' + CURRENCY + ' ' + esc(s.targetPrice) + '</p>';
+      html += '<p class="shoe-id">ID: ' + esc(s.id) + '</p>';
+      html += '<div class="card-btn-wrap">' + btnHtml + '</div>';
+      html += '</div></div>';
+    });
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('[data-book]').forEach(function(b){
+      b.addEventListener('click', function(){ openBooking(this.getAttribute('data-book')); });
+    });
+    grid.querySelectorAll('[data-zoom]').forEach(function(img){ attachZoomHandlers(img); });
+  }
+
+  function resetFilters(){
+    $('searchBox').value = ''; $('filterCategory').value = '';
+    $('filterSize').value = ''; $('filterMaxPrice').value = '';
+    renderCustomerGrid();
+  }
+
+  function openBooking(id){
+    selectedShoe = allShoes.find(function(s){ return s.id === id; });
+    if (!selectedShoe) return;
+    $('bkInfo').textContent = 'Size ' + selectedShoe.size + ' - ' + CURRENCY + ' ' + selectedShoe.targetPrice;
+    $('bookingModal').classList.add('active');
+  }
+  function closeBooking(){ $('bookingModal').classList.remove('active'); $('bkMsg').textContent = ''; }
+  function submitBookingForm(){
+    var name = $('bkName').value.trim(), phone = $('bkPhone').value.trim();
+    var loc = $('bkLocation').value.trim(), cm = $('bkComment').value.trim();
+    var msg = $('bkMsg');
+    if (!name || !phone || !loc){ msg.className = 'msg msg-bad'; msg.textContent = 'Fill all fields.'; return; }
+    msg.className = 'msg msg-i'; msg.textContent = 'Sending...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (res.success){
+          msg.className = 'msg msg-ok';
+          msg.innerHTML = '✅ <b>Request sent!</b><br><small>We\'ll call you shortly.</small>';
+          setTimeout(function(){
+            closeBooking(); loadCustomerInventory();
+            $('bkName').value = ''; $('bkPhone').value = '';
+            $('bkLocation').value = ''; $('bkComment').value = '';
+          }, 2000);
+        } else { msg.className = 'msg msg-bad'; msg.textContent = res.message; }
+      })
+      .withFailureHandler(function(e){ msg.className = 'msg msg-bad'; msg.textContent = 'Error: ' + e.message; })
+      .submitBooking({ shoeId: selectedShoe.id, name: name, phone: phone, location: loc, comment: cm });
+  }
+
+  // ================= LOGIN =================
+  function showLogin(){
+    hide($('customerView')); show($('loginView'));
+    hide($('adminView')); hide($('adminBtn')); hide($('logoutBtn'));
+    setTimeout(function(){ $('loginEmail').focus(); }, 100);
+  }
+  function doLogin(){
+    var em = $('loginEmail').value.trim(), pw = $('loginPassword').value.trim();
+    var err = $('loginError');
+    if (!em || !pw){ err.textContent = 'Enter username and password.'; return; }
+    err.textContent = 'Logging in...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (res.success){
+          adminCreds = { email: em, password: pw };
+          hide($('loginView')); show($('adminView'));
+          hide($('adminBtn')); show($('logoutBtn'));
+          err.textContent = '';
+          loadAdminData();
+        } else err.textContent = res.message;
+      })
+      .withFailureHandler(function(e){ err.textContent = 'Error: ' + e.message; })
+      .adminLogin(em, pw);
+  }
+  function logout(){
+    adminCreds = null; adminData = [];
+    hide($('adminView')); show($('customerView'));
+    hide($('logoutBtn')); show($('adminBtn'));
+    loadCustomerInventory(); loadFilterOptions();
+  }
+
+  // ================= ADMIN DATA =================
+  function loadAdminData(){
+    // STATS
+    google.script.run
+      .withSuccessHandler(function(res){
+        try {
+          if (!res || !res.success){
+            $('statsGrid').innerHTML = '<div class="stat" style="grid-column:1/-1"><h4>Status</h4><p style="font-size:.9rem;color:#ef4444">' + ((res && res.message) || 'Unavailable') + '</p></div>';
+            return;
+          }
+          $('statsGrid').innerHTML =
+            '<div class="stat"><h4>Total</h4><p>' + (res.total||0) + '</p></div>' +
+            '<div class="stat"><h4>Available</h4><p style="color:#10b981">' + (res.available||0) + '</p></div>' +
+            '<div class="stat"><h4>Reserved</h4><p style="color:#f59e0b">' + (res.reserved||0) + '</p></div>' +
+            '<div class="stat"><h4>Sold</h4><p style="color:#ef4444">' + (res.sold||0) + '</p></div>' +
+            '<div class="stat"><h4>Revenue</h4><p>' + CURRENCY + ' ' + (res.revenue||0).toLocaleString() + '</p></div>' +
+            '<div class="stat"><h4>Cost</h4><p>' + CURRENCY + ' ' + (res.cost||0).toLocaleString() + '</p></div>' +
+            '<div class="stat"><h4>Profit</h4><p style="color:#10b981">' + CURRENCY + ' ' + (res.profit||0).toLocaleString() + '</p></div>';
+          try { renderCharts(res); } catch (ce) { console.error('Chart', ce); }
+          var cf = $('adminCatFilter'), cats = [];
+          (res.categories || []).forEach(function(c){ if (cats.indexOf(c.name) === -1) cats.push(c.name); });
+          cf.innerHTML = '<option value="">All</option>';
+          cats.forEach(function(c){ var o = document.createElement('option'); o.textContent = c; cf.appendChild(o); });
+        } catch (e) { console.error('Stats render', e); }
+      })
+      .withFailureHandler(function(e){ console.error('Stats fail', e); })
+      .getAdminStats(adminCreds.email, adminCreds.password);
+
+    // INVENTORY
+    $('invDebug').className = 'debug-bar';
+    $('invDebug').textContent = '⏳ Loading inventory...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        console.log('INVENTORY RESPONSE:', res);
+        var tb = $('adminTbody');
+        if (!res){
+          $('invDebug').className = 'debug-bar err';
+          $('invDebug').textContent = '❌ Empty response from server';
+          tb.innerHTML = '<tr><td colspan="12" class="table-empty">Empty response</td></tr>';
+          return;
+        }
+        if (!res.success){
+          $('invDebug').className = 'debug-bar err';
+          $('invDebug').textContent = '❌ ' + (res.message || 'Unknown error');
+          tb.innerHTML = '<tr><td colspan="12" class="table-empty">' + esc(res.message) + '</td></tr>';
+          return;
+        }
+        adminData = res.shoes || [];
+        $('invDebug').className = 'debug-bar ok';
+        $('invDebug').textContent = '✅ Loaded ' + adminData.length + ' shoes';
+        renderInventory();
+      })
+      .withFailureHandler(function(e){
+        console.error('getAdminInventory fail', e);
+        $('invDebug').className = 'debug-bar err';
+        $('invDebug').textContent = '❌ ' + e.message;
+        $('adminTbody').innerHTML = '<tr><td colspan="12" class="table-empty">Error: ' + esc(e.message) + '</td></tr>';
+      })
+      .getAdminInventory(adminCreds.email, adminCreds.password);
+
+    // ORDERS
+    $('ordDebug').className = 'debug-bar';
+    $('ordDebug').textContent = '⏳ Loading orders...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        console.log('ORDERS RESPONSE:', res);
+        var tb = $('ordersTbody');
+        if (!res){
+          $('ordDebug').className = 'debug-bar err';
+          $('ordDebug').textContent = '❌ Empty response';
+          tb.innerHTML = '<tr><td colspan="9" class="table-empty">Empty response</td></tr>';
+          return;
+        }
+        if (!res.success){
+          $('ordDebug').className = 'debug-bar err';
+          $('ordDebug').textContent = '❌ ' + (res.message || 'Unknown error');
+          tb.innerHTML = '<tr><td colspan="9" class="table-empty">' + esc(res.message) + '</td></tr>';
+          return;
+        }
+        $('ordDebug').className = 'debug-bar ok';
+        $('ordDebug').textContent = '✅ Loaded ' + (res.orders || []).length + ' enquiries';
+        renderOrders(res.orders || []);
+      })
+      .withFailureHandler(function(e){
+        console.error('getOrders fail', e);
+        $('ordDebug').className = 'debug-bar err';
+        $('ordDebug').textContent = '❌ ' + e.message;
+        $('ordersTbody').innerHTML = '<tr><td colspan="9" class="table-empty">Error: ' + esc(e.message) + '</td></tr>';
+      })
+      .getOrders(adminCreds.email, adminCreds.password);
+  }
+
+  function renderCharts(res){
+    if (typeof Chart === 'undefined') return;
+    if (charts.trend) charts.trend.destroy();
+    charts.trend = new Chart($('trendChart'), {
+      type: 'line',
+      data: { labels: res.trendLabels || [], datasets: [{ label: 'Revenue', data: res.trendData || [], borderColor: '#e94560', backgroundColor: 'rgba(233,69,96,0.15)', tension: 0.35, fill: true, pointRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+    if (charts.status) charts.status.destroy();
+    charts.status = new Chart($('statusChart'), {
+      type: 'doughnut',
+      data: { labels: ['Available','Reserved','Sold'], datasets: [{ data: [res.available||0, res.reserved||0, res.sold||0], backgroundColor: ['#10b981','#f59e0b','#ef4444'] }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+    if (charts.category) charts.category.destroy();
+    charts.category = new Chart($('categoryChart'), {
+      type: 'bar',
+      data: {
+        labels: (res.categories || []).map(function(c){ return c.name; }),
+        datasets: [
+          { label: 'Sold', data: (res.categories || []).map(function(c){ return c.sold; }), backgroundColor: '#e94560' },
+          { label: 'Total', data: (res.categories || []).map(function(c){ return c.total; }), backgroundColor: '#1a1a2e' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  function renderInventory(){
+    var tb = $('adminTbody');
+    if (!adminData || adminData.length === 0){
+      tb.innerHTML = '<tr><td colspan="12" class="table-empty">No shoes yet.</td></tr>';
+      return;
+    }
+    var q = ($('adminSearch').value || '').toLowerCase();
+    var st = $('statusFilter').value;
+    var ct = $('adminCatFilter').value;
+    var sk = $('adminStockFilter').value.trim();
+
+    var rows = adminData.filter(function(s){
+      var a = !q || String(s.size).indexOf(q) !== -1 || String(s.id).toLowerCase().indexOf(q) !== -1;
+      var b = !st || s.status === st;
+      var c = !ct || s.category === ct;
+      var d = !sk || String(s.stockType) === sk;
+      return a && b && c && d;
+    });
+    if (rows.length === 0){
+      tb.innerHTML = '<tr><td colspan="12" class="table-empty">No matching rows.</td></tr>';
+      return;
+    }
+    var html = '';
+    rows.forEach(function(s){
+      var img = s.picture ? '<img src="' + esc(s.picture) + '" onerror="this.style.display=\'none\'">' : '–';
+      var margin = s.profitMargin ? (Number(s.profitMargin) * 100).toFixed(1) + '%' : '–';
+      var cls = s.status ? ('s-' + s.status) : '';
+      html += '<tr>' +
+        '<td>' + esc(s.id) + '</td>' +
+        '<td>' + img + '</td>' +
+        '<td>' + CURRENCY + ' ' + esc(s.buyingPrice) + '</td>' +
+        '<td>' + esc(s.size) + '</td>' +
+        '<td>' + CURRENCY + ' ' + esc(s.targetPrice) + '</td>' +
+        '<td class="' + cls + '">' + esc(s.status) + '</td>' +
+        '<td>' + (esc(s.payment) || '–') + '</td>' +
+        '<td>' + (s.priceSold ? CURRENCY + ' ' + esc(s.priceSold) : '–') + '</td>' +
+        '<td>' + margin + '</td>' +
+        '<td>' + (esc(s.category) || '–') + '</td>' +
+        '<td>' + esc(s.stockType) + '</td>' +
+        '<td><button type="button" class="btn btn-sm btn-edit" data-edit="' + esc(s.id) + '">✏️ Edit</button></td>' +
+      '</tr>';
+    });
+    tb.innerHTML = html;
+    tb.querySelectorAll('[data-edit]').forEach(function(b){
+      b.addEventListener('click', function(){ openEdit(this.getAttribute('data-edit')); });
+    });
+  }
+
+  function renderOrders(orders){
+    var tb = $('ordersTbody');
+    if (!orders || orders.length === 0){
+      tb.innerHTML = '<tr><td colspan="9" class="table-empty">No orders yet.</td></tr>';
+      return;
+    }
+    var html = '';
+    orders.forEach(function(o){
+      var d = o.date ? new Date(o.date).toLocaleString() : '–';
+      var cls = o.status === 'New Enquiry' ? 's-Reserved' : o.status === 'Confirmed' ? 's-Available' : 's-Sold';
+      html += '<tr>' +
+        '<td>' + esc(o.orderId) + '</td>' +
+        '<td>' + esc(o.shoeId) + '</td>' +
+        '<td>' + esc(o.name) + '</td>' +
+        '<td><a href="tel:' + esc(o.phone) + '" style="color:#e94560;text-decoration:none">' + esc(o.phone) + '</a></td>' +
+        '<td>' + esc(o.location) + '</td>' +
+        '<td>' + (esc(o.comment) || '–') + '</td>' +
+        '<td>' + d + '</td>' +
+        '<td class="' + cls + '">' + esc(o.status) + '</td>' +
+        '<td>–</td>' +
+      '</tr>';
+    });
+    tb.innerHTML = html;
+  }
+
+  function openEdit(id){
+    var s = adminData.find(function(x){ return x.id === id; });
+    if (!s){ alert('Not found'); return; }
+    editingShoe = s;
+    $('editShoeId').textContent = 'Editing: ' + s.id;
+    $('editPicture').value = s.picture || '';
+    $('editBuy').value = s.buyingPrice || '';
+    $('editSize').value = s.size || '';
+    $('editTarget').value = s.targetPrice || '';
+    $('editStatus').value = s.status || 'Available';
+    $('editPayment').value = s.payment || '';
+    $('editSold').value = s.priceSold || '';
+    $('editCategory').value = s.category || 'General';
+    $('editStock').value = s.stockType || 1;
+    $('editComment').value = s.comment || '';
+    $('editMsg').textContent = '';
+    $('editModal').classList.add('active');
+  }
+  function closeEdit(){ $('editModal').classList.remove('active'); editingShoe = null; }
+  function saveEdit(){
+    if (!editingShoe) return;
+    var msg = $('editMsg'), btn = $('editSave');
+    var updates = {
+      picture: $('editPicture').value.trim(),
+      buyingPrice: Number($('editBuy').value) || '',
+      size: Number($('editSize').value) || '',
+      targetPrice: Number($('editTarget').value) || '',
+      status: $('editStatus').value,
+      payment: $('editPayment').value.trim(),
+      priceSold: Number($('editSold').value) || '',
+      category: $('editCategory').value,
+      stockType: Number($('editStock').value) || 1,
+      comment: $('editComment').value.trim()
+    };
+    btn.disabled = true; btn.textContent = 'Saving...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        btn.disabled = false; btn.textContent = 'Save';
+        if (res.success){
+          msg.className = 'msg msg-ok'; msg.textContent = '✅ Saved!';
+          setTimeout(function(){ closeEdit(); loadAdminData(); loadCustomerInventory(); }, 700);
+        } else { msg.className = 'msg msg-bad'; msg.textContent = res.message; }
+      })
+      .withFailureHandler(function(e){ btn.disabled = false; btn.textContent = 'Save'; msg.className = 'msg msg-bad'; msg.textContent = 'Error: ' + e.message; })
+      .updateShoe(adminCreds.email, adminCreds.password, editingShoe.id, updates);
+  }
+
+  // ================= IMAGE UPLOAD =================
+  $('uploadArea').addEventListener('click', function(){ $('imgFile').click(); });
+  $('imgFile').addEventListener('change', function(ev){
+    var f = ev.target.files[0]; if (!f) return;
+    var st = $('uploadStatus');
+    if (f.size > 5*1024*1024){ st.className='msg msg-bad'; st.textContent='Max 5MB'; return; }
+    var r = new FileReader();
+    r.onload = function(e){
+      var p = $('imgPreview'); p.src = e.target.result; show(p); hide($('uploadPrompt'));
+      st.className = 'msg msg-i'; st.textContent = 'Uploading...';
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (res.success){ uploadedImageUrl = res.url; st.className='msg msg-ok'; st.textContent = '✅ Uploaded'; }
+          else { st.className='msg msg-bad'; st.textContent = '❌ ' + res.message; }
+        })
+        .withFailureHandler(function(e){ st.className='msg msg-bad'; st.textContent = 'Error: ' + e.message; })
+        .uploadImage(e.target.result.split(',')[1], f.name, f.type);
+    };
+    r.readAsDataURL(f);
+  });
+
+  $('addShoeBtn').addEventListener('click', function(){
+    var msg = $('addMsg'), btn = this;
+    var bp = $('addBuy').value.trim(), sz = $('addSize').value.trim();
+    var tp = $('addTarget').value.trim(), stk = $('addStockType').value.trim();
+    if (!bp || !sz || !tp){ msg.className='msg msg-bad'; msg.textContent='Fill required.'; return; }
+    btn.disabled = true; btn.textContent = 'Adding...';
+    google.script.run
+      .withSuccessHandler(function(res){
+        btn.disabled = false; btn.textContent = 'Add Shoe';
+        if (res.success){
+          msg.className = 'msg msg-ok'; msg.textContent = '✅ Added: ' + res.id;
+          $('addBuy').value=''; $('addSize').value=''; $('addTarget').value='';
+          $('addComment').value=''; $('addStockType').value='';
+          uploadedImageUrl = '';
+          hide($('imgPreview')); show($('uploadPrompt'));
+          $('uploadStatus').textContent=''; $('imgFile').value='';
+          loadAdminData(); loadCustomerInventory();
+        } else { msg.className='msg msg-bad'; msg.textContent = res.message; }
+      })
+      .withFailureHandler(function(e){ btn.disabled=false; btn.textContent='Add Shoe'; msg.className='msg msg-bad'; msg.textContent='Error: '+e.message; })
+      .addShoe(adminCreds.email, adminCreds.password, {
+        picture: uploadedImageUrl || '',
+        buyingPrice: Number(bp), size: Number(sz), targetPrice: Number(tp),
+        category: $('addCategory').value, stockType: stk,
+        comment: $('addComment').value.trim()
+      });
+  });
+
+  // ================= TABS =================
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+      this.classList.add('active');
+      var target = this.getAttribute('data-tab');
+      ['dash','inv','orders','add'].forEach(function(n){
+        var el = $('tab-' + n);
+        if (n === target) show(el); else hide(el);
+      });
+    });
+  });
+
+  // ================= LIGHTBOX =================
+  function attachZoomHandlers(img){
+    var last = 0, timer = null;
+    img.addEventListener('click', function(){
+      var now = new Date().getTime(), gap = now - last;
+      if (gap < 400 && gap > 0){
+        if (timer) { clearTimeout(timer); timer = null; }
+        last = 0;
+        openLB(this.getAttribute('data-zoom'));
+      } else {
+        last = now;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function(){ timer = null; }, 400);
+      }
+    });
+    img.addEventListener('dblclick', function(e){ e.preventDefault(); openLB(this.getAttribute('data-zoom')); });
+  }
+  function openLB(url){ if (!url) return; $('lightboxImg').src = url; $('lightbox').classList.add('active'); document.body.style.overflow = 'hidden'; }
+  function closeLB(){ $('lightbox').classList.remove('active'); setTimeout(function(){ $('lightboxImg').src=''; }, 260); document.body.style.overflow=''; }
+
+  // ================= EVENTS =================
+  $('adminBtn').addEventListener('click', showLogin);
+  $('logoutBtn').addEventListener('click', logout);
+  $('loginBtn').addEventListener('click', doLogin);
+  $('loginPassword').addEventListener('keydown', function(e){ if (e.key === 'Enter') doLogin(); });
+  $('resetBtn').addEventListener('click', resetFilters);
+  $('bkClose').addEventListener('click', closeBooking);
+  $('bkSubmit').addEventListener('click', submitBookingForm);
+  $('editClose').addEventListener('click', closeEdit);
+  $('editCancel').addEventListener('click', closeEdit);
+  $('editSave').addEventListener('click', saveEdit);
+  $('lightboxClose').addEventListener('click', closeLB);
+  $('lightbox').addEventListener('click', function(e){
+    if (e.target === this || e.target.classList.contains('lightbox-inner')) closeLB();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && $('lightbox').classList.contains('active')) closeLB();
+  });
+  $('searchBox').addEventListener('input', renderCustomerGrid);
+  $('filterCategory').addEventListener('change', renderCustomerGrid);
+  $('filterSize').addEventListener('change', renderCustomerGrid);
+  $('filterMaxPrice').addEventListener('input', renderCustomerGrid);
+  $('adminSearch').addEventListener('input', renderInventory);
+  $('statusFilter').addEventListener('change', renderInventory);
+  $('adminCatFilter').addEventListener('change', renderInventory);
+  $('adminStockFilter').addEventListener('input', renderInventory);
+
+  // ================= INIT =================
+  loadCustomerInventory();
+  loadFilterOptions();
+})();
+</script>
+</body>
+</html>

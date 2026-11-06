@@ -7,7 +7,7 @@ The new application expects these exact tab names and column order. Confirm the 
 | Column | Header | Used for |
 |---|---|---|
 | A | ID | Unique shoe identifier |
-| B | Picture | Public product image URL (Cloudinary recommended) |
+| B | Picture | Google Drive thumbnail URL created by the admin photo uploader |
 | C | Buying Price | Internal purchase cost |
 | D | size | Shoe size |
 | E | Target Price | Public asking price |
@@ -19,6 +19,9 @@ The new application expects these exact tab names and column order. Confirm the 
 | K | Date | Sale date / date field |
 | L | Category | Product category |
 | M | Stock Type | Batch number |
+| N | Hot Sale | `TRUE` or `FALSE` promotional badge |
+| O | Sale Price | Optional promotional selling price |
+| P | Reserved Date | Timestamp when the item was marked Reserved |
 
 ## Orders
 
@@ -29,7 +32,7 @@ The new application expects these exact tab names and column order. Confirm the 
 | Column | Header | Used for |
 |---|---|---|
 | A | Username | Login name (morisky, mon, kamala) |
-| B | PasswordHash | 64-byte scrypt hash encoded as 128 hexadecimal characters |
+| B | PasswordHash | Legacy SHA-256 hash (64 hex characters); automatically upgraded to scrypt (128 hex characters) after a successful login |
 | C | Salt | Unique random salt for that administrator |
 | D | Role | `Super Admin` or `Admin` |
 | E | Active | `TRUE` or `FALSE` |

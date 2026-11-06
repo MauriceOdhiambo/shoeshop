@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 
-export const INVENTORY_HEADERS = ['ID','Picture','Buying Price','size','Target Price','Status','method Payment','price sold','Profit Margin','comment','Date','Category','Stock Type'];
+export const INVENTORY_HEADERS = ['ID','Picture','Buying Price','size','Target Price','Status','method Payment','price sold','Profit Margin','comment','Date','Category','Stock Type','Hot Sale','Sale Price','Reserved Date'];
 export const ORDER_HEADERS = ['Order ID','Shoe ID','Customer Name','Phone','Location','Comment','Date','Status'];
 export const HISTORY_HEADERS = ['Timestamp','Shoe ID','Field Changed','Old Value','New Value','Changed By','Full Row Snapshot','Action'];
 
@@ -30,10 +30,14 @@ function getCredentials(): any {
   }
 }
 
+export function googleAuth(scopes: string[] = ['https://www.googleapis.com/auth/spreadsheets']) {
+  return new google.auth.GoogleAuth({ credentials: getCredentials(), scopes });
+}
+
 function sheetsClient() {
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID?.trim();
   if (!spreadsheetId) throw new Error('Google Sheets configuration is incomplete: GOOGLE_SHEETS_SPREADSHEET_ID is missing.');
-  const auth = new google.auth.GoogleAuth({ credentials: getCredentials(), scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+  const auth = googleAuth(['https://www.googleapis.com/auth/spreadsheets']);
   return google.sheets({ version: 'v4', auth });
 }
 
@@ -59,20 +63,7 @@ export async function appendRow(tab: string, values: unknown[]) {
 }
 export async function updateRow(tab: string, rowNumber: number, values: unknown[]) {
   const api = sheetsClient();
-  // Match the update range to the supplied row width (e.g. A:E for Admins).
-  let endColumn = '';
-  let columnNumber = values.length;
-  while (columnNumber > 0) {
-    const remainder = (columnNumber - 1) % 26;
-    endColumn = String.fromCharCode(65 + remainder) + endColumn;
-    columnNumber = Math.floor((columnNumber - 1) / 26);
-  }
-  await api.spreadsheets.values.update({
-    spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID!.trim(),
-    range: `'${tab.replace(/'/g, "''")}'!A${rowNumber}:${endColumn}${rowNumber}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [values] },
-  });
+  await api.spreadsheets.values.update({ spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID!.trim(), range: `'${tab.replace(/'/g, "''")}'!A${rowNumber}:Z${rowNumber}`, valueInputOption: 'USER_ENTERED', requestBody: { values: [values] } });
 }
 export async function ensureHistory() {
   const rows = await readRows('History');
@@ -100,4 +91,19 @@ export function driveImageUrl(value: unknown): string {
     }
   }
   return input;
+}
+
+
+/** Add the optional inventory columns without disturbing existing inventory data. */
+export async function ensureInventoryColumns() {
+  const rows = await readRows('Inventory');
+  if (!rows.length) return INVENTORY_HEADERS;
+  const headers = rows[0].map((value) => String(value ?? '').trim());
+  const normalized = headers.map((value) => value.toLowerCase());
+  let changed = false;
+  for (const header of INVENTORY_HEADERS.slice(13)) {
+    if (!normalized.includes(header.toLowerCase())) { headers.push(header); normalized.push(header.toLowerCase()); changed = true; }
+  }
+  if (changed) await updateRow('Inventory', 1, headers);
+  return headers;
 }

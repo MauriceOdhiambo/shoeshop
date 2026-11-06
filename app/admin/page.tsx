@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 type Booking = { rowNumber: number; orderId: string; shoeId: string; name: string; phone: string; location: string; comment: string; date: string; status: string };
-type Shoe = { rowNumber: number; id: string; picture: string; originalPicture?: string; buyingPrice: number; size: string | number; targetPrice: number; status: string; priceSold: number; category: string; stockType: number };
+type Shoe = { rowNumber: number; id: string; picture: string; originalPicture?: string; buyingPrice: number; size: string | number; targetPrice: number; status: string; priceSold: number; category: string; stockType: number; hotSale: boolean; salePrice: number; reservedDate?: string };
 type AdminUser = { username: string; role: 'Super Admin' | 'Admin'; active: boolean };
 type AdminIdentity = { username: string; role: 'Super Admin' | 'Admin' };
 type Tab = 'bookings' | 'inventory' | 'add' | 'admins';
@@ -21,6 +21,9 @@ export default function Admin() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({});
+  const [imageUrl, setImageUrl] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploadBusy, setUploadBusy] = useState(false);
 
   async function request(url: string, init?: RequestInit) {
     const response = await fetch(url, { ...init, cache: 'no-store', headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
@@ -97,12 +100,34 @@ export default function Admin() {
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Update failed'); }
   }
 
-  async function updateShoe(id: string, status: string) {
+  function changeShoe(id: string, changes: Partial<Shoe>) {
+    setShoes((previous) => previous.map((shoe) => shoe.id === id ? { ...shoe, ...changes } : shoe));
+  }
+
+  async function saveShoe(shoe: Shoe) {
     try {
-      await request('/api/admin/inventory', { method: 'PATCH', body: JSON.stringify({ id, status }) });
-      setNotice(`Item ${id} updated.`);
+      await request('/api/admin/inventory', { method: 'PATCH', body: JSON.stringify({ id: shoe.id, status: shoe.status, priceSold: shoe.priceSold, hotSale: shoe.hotSale, salePrice: shoe.salePrice }) });
+      setNotice(`Inventory item ${shoe.id} saved.`);
       await refresh();
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Update failed'); }
+  }
+
+  async function uploadImage(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setNotice('Please choose an image file.'); return; }
+    if (file.size > 4 * 1024 * 1024) { setNotice('Please choose an image 4 MB or smaller.'); return; }
+    setImageUrl(''); setImagePreview('');
+    setUploadBusy(true); setNotice('Uploading photo to Google Drive…');
+    try {
+      const form = new FormData(); form.append('file', file);
+      const response = await fetch('/api/admin/upload-image', { method: 'POST', body: form, cache: 'no-store' });
+      const raw = await response.text(); let data: any;
+      try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error(`Photo upload returned a non-JSON response (HTTP ${response.status}).`); }
+      if (!response.ok || !data.success) throw new Error(data.message || `Photo upload failed (HTTP ${response.status}).`);
+      setImageUrl(data.picture); setImagePreview(URL.createObjectURL(file));
+      setNotice('Photo uploaded to Google Drive. Save the shoe to store its image link in Google Sheets.');
+    } catch (e) { setNotice(e instanceof Error ? e.message : 'Photo upload failed.'); }
+    finally { setUploadBusy(false); }
   }
 
   async function addShoe(event: FormEvent<HTMLFormElement>) {
@@ -110,9 +135,10 @@ export default function Admin() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
-      const data = await request('/api/admin/inventory', { method: 'POST', body: JSON.stringify({ picture: form.get('picture'), buyingPrice: form.get('buyingPrice'), size: form.get('size'), targetPrice: form.get('targetPrice'), category: form.get('category'), comment: form.get('comment') }) });
+      const data = await request('/api/admin/inventory', { method: 'POST', body: JSON.stringify({ picture: imageUrl, buyingPrice: form.get('buyingPrice'), size: form.get('size'), targetPrice: form.get('targetPrice'), category: form.get('category'), comment: form.get('comment'), hotSale: form.get('hotSale') === 'on', salePrice: form.get('salePrice') }) });
       setNotice(`New item added: ${data.id}`);
       formElement.reset();
+      setImageUrl(''); setImagePreview('');
       await refresh();
       setTab('inventory');
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not add item'); }
@@ -179,12 +205,12 @@ export default function Admin() {
             </tbody></table>{bookings.length === 0 && <div className="empty">No customer bookings have been received yet.</div>}</div>
           </> : tab === 'inventory' ? <>
             <h2>Inventory management</h2><p className="muted">Update stock availability. Prices and purchase records remain in the spreadsheet.</p>
-            <div className="table-wrap"><table><thead><tr><th>Photo</th><th>Item ID</th><th>Category</th><th>Size</th><th>Buy price</th><th>Target price</th><th>Status</th></tr></thead><tbody>
-              {shoes.map((shoe) => <tr key={shoe.id}><td><img src={shoe.picture||'/images/shoe-placeholder.svg'} alt={shoe.category} width={52} height={52} style={{objectFit:'cover',borderRadius:8}} referrerPolicy="no-referrer" onError={(e)=>{const img=e.currentTarget;if(img.dataset.fallback!=='used'&&shoe.originalPicture){img.dataset.fallback='used';img.src=shoe.originalPicture;}else img.src='/images/shoe-placeholder.svg';}}/></td><td>{shoe.id}</td><td>{shoe.category}</td><td>{shoe.size}</td><td>KSh {shoe.buyingPrice.toLocaleString()}</td><td>KSh {shoe.targetPrice.toLocaleString()}</td><td><select value={shoe.status} onChange={(e) => updateShoe(shoe.id, e.target.value)}><option>Available</option><option>Reserved</option><option>Sold</option></select></td></tr>)}
+            <div className="table-wrap"><table><thead><tr><th>Photo</th><th>Item</th><th>Buy price</th><th>Target price</th><th>Sold price</th><th>Status</th><th>Hot Sale</th><th>Sale price</th><th>Action</th></tr></thead><tbody>
+              {shoes.map((shoe) => <tr key={shoe.id}><td><img src={shoe.picture||'/images/shoe-placeholder.svg'} alt={shoe.category} width={56} height={56} style={{objectFit:'cover',borderRadius:8}} referrerPolicy="no-referrer" onError={(e)=>{const img=e.currentTarget;if(img.dataset.fallback!=='used'&&shoe.originalPicture){img.dataset.fallback='used';img.src=shoe.originalPicture;}else img.src='/images/shoe-placeholder.svg';}}/></td><td><strong>{shoe.category}</strong><div className="muted">{shoe.id} · Size {shoe.size}</div></td><td>KSh {shoe.buyingPrice.toLocaleString()}</td><td>KSh {shoe.targetPrice.toLocaleString()}</td><td><input aria-label={`Sold price for ${shoe.id}`} type="number" min="0" step="1" value={shoe.priceSold || ''} style={{width:105}} onChange={(e)=>changeShoe(shoe.id,{priceSold:Number(e.target.value)})}/></td><td><select value={shoe.status} onChange={(e)=>changeShoe(shoe.id,{status:e.target.value})}><option>Available</option><option>Reserved</option><option>Sold</option></select></td><td><input aria-label={`Hot Sale for ${shoe.id}`} type="checkbox" checked={shoe.hotSale} onChange={(e)=>changeShoe(shoe.id,{hotSale:e.target.checked})}/></td><td><input aria-label={`Sale price for ${shoe.id}`} type="number" min="0" step="1" value={shoe.salePrice || ''} style={{width:105}} onChange={(e)=>changeShoe(shoe.id,{salePrice:Number(e.target.value)})}/></td><td><button className="btn" onClick={()=>saveShoe(shoe)}>Save</button></td></tr>)}
             </tbody></table></div>
           </> : tab === 'add' ? <>
-            <h2>Add a new shoe</h2><p className="muted">Add product details. For the product image, paste a Cloudinary image URL after uploading it to your product folder.</p>
-            <form onSubmit={addShoe}><div className="field"><label>Image URL</label><input name="picture" type="url" placeholder="https://res.cloudinary.com/..."/></div><div className="field"><label>Category *</label><input name="category" required placeholder="Sneakers, formal, casual…"/></div><div className="field"><label>Size *</label><input name="size" required/></div><div className="field"><label>Buying price (KSh) *</label><input name="buyingPrice" type="number" min="0" step="0.01" required/></div><div className="field"><label>Target selling price (KSh) *</label><input name="targetPrice" type="number" min="0" step="0.01" required/></div><div className="field"><label>Internal comment</label><textarea name="comment" rows={3}/></div><button className="btn">Save shoe to inventory</button></form>
+            <h2>Add a new shoe</h2><p className="muted">Choose a photo from your device. It will be uploaded to your Google Drive photo folder, and its link will be saved in the Picture column when you save the shoe.</p>
+            <form onSubmit={addShoe}><div className="field"><label>Shoe photo</label><input type="file" accept="image/*" onChange={(e)=>uploadImage(e.target.files?.[0])} disabled={uploadBusy}/>{uploadBusy&&<span className="muted">Uploading photo…</span>}{imagePreview&&<img src={imagePreview} alt="Selected shoe preview" style={{width:180,height:150,objectFit:'cover',borderRadius:10}}/>}{imageUrl&&<span className="muted">Google Drive image uploaded ✓</span>}</div><div className="field"><label>Category *</label><input name="category" required placeholder="Sneakers, formal, casual…"/></div><div className="field"><label>Size *</label><input name="size" required/></div><div className="field"><label>Buying price (KSh) *</label><input name="buyingPrice" type="number" min="0" step="0.01" required/></div><div className="field"><label>Target selling price (KSh) *</label><input name="targetPrice" type="number" min="0" step="0.01" required/></div><div className="field"><label><input type="checkbox" name="hotSale"/> Mark as Hot Sale</label></div><div className="field"><label>Hot Sale price (optional)</label><input name="salePrice" type="number" min="0" step="0.01" placeholder="Special price"/></div><div className="field"><label>Internal comment</label><textarea name="comment" rows={3}/></div><button className="btn" disabled={uploadBusy}>Save shoe to inventory</button></form>
           </> : isSuperAdmin ? <>
             <h2>Administrator accounts</h2><p className="muted">Only the Super Admin can create, change, deactivate or reset administrator accounts. Passwords are stored as salted scrypt hashes in Google Sheets.</p>
             <h3>Add administrator</h3>

@@ -21,13 +21,14 @@ Replace the repository contents with this folder, commit and push, then wait for
 - Inventory tab should have the user's existing headers, including `ID`, `Picture`, `Target Price`, `Status`, `Category`, and `size`.
 - Drive image files must be shared as Anyone with the link / Viewer.
 
+## Inventory upgrades: Google Drive photo uploads, Hot Sale and sales updates
 
-## Admin login compatibility update
+The admin Add New Shoe form accepts an image upload (JPG, PNG, WEBP, etc.; max 4 MB). The upload is sent through a Google Apps Script web app that creates the file in your own Google Drive. When the admin saves the shoe, its public thumbnail link is stored in the Inventory sheet's `Picture` column.
 
-The login verifier now supports the legacy Google Apps Script password format used by the existing Admins tab:
-- SHA-256 repeated 10,000 times, appending the salt after each digest.
-- 64-character hexadecimal stored hash and the existing salt.
-- On a successful legacy login, the account's hash is automatically upgraded to scrypt and the new hash/salt are written back to the same Admins row.
-- Existing usernames, roles, Active flags, and passwords are preserved during this migration.
+Follow `docs/DRIVE-UPLOAD-SETUP.md` to create the `Shoe Studio Photos` folder, deploy the Apps Script bridge, and configure `GOOGLE_DRIVE_UPLOAD_WEB_APP_URL` plus `GOOGLE_DRIVE_UPLOAD_TOKEN` in Vercel. This approach avoids depending on service-account Drive storage quota.
 
-Do not run `npm run admins:setup` for this fix. It replaces the Admins tab and prompts for new passwords.
+### Inventory sheet columns and behaviour
+
+The app adds these optional columns to the end of the Inventory header row if missing: `Hot Sale`, `Sale Price`, and `Reserved Date`. Existing inventory columns and rows are retained. Available stock is sorted first, then Reserved, then Sold; Hot Sale items are promoted within each status group. Sold and Reserved items cannot be booked from the public shop. Admins can edit status, actual sold price, Hot Sale flag and promotional sale price in the inventory table.
+
+When changing a shoe to `Sold`, enter its actual sold price before saving. The app calculates the profit margin from the sold price and buying price. Marking an item `Reserved` records the reservation date; returning it to `Available` clears that date.

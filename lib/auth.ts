@@ -1,10 +1,11 @@
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { readRows } from '@/lib/sheets';
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { readRows, updateRow } from '@/lib/sheets';
 
 const COOKIE = 'shoeshop_admin';
 const SCRYPT_KEY_LENGTH = 64;
+const LEGACY_SHA256_ITERATIONS = 10000;
 export type AdminRole = 'Super Admin' | 'Admin';
 export type AdminIdentity = { username: string; role: AdminRole };
 
@@ -31,7 +32,7 @@ async function getAdminRecords(): Promise<AdminRecord[]> {
   const roleCol = col('role');
   const activeCol = col('active');
   if ([usernameCol, hashCol, saltCol, roleCol, activeCol].some((i) => i < 0)) {
-    throw new Error('Admins sheet needs these headers: Username, PasswordHash, Salt, Role, Active. Run npm run admins:setup.');
+    throw new Error('Admins sheet needs these headers: Username, PasswordHash, Salt, Role, Active.');
   }
   return rows.slice(1).map((r, i) => {
     const rawRole = String(r[roleCol] ?? 'Admin').trim();
@@ -47,19 +48,74 @@ async function getAdminRecords(): Promise<AdminRecord[]> {
   }).filter((a) => a.username);
 }
 
+/**
+ * Matches the legacy Google Apps Script algorithm:
+ * start with password + salt, then repeat SHA-256(hexDigest + salt)
+ * 10,000 times. The stored value is the final 64-character digest.
+ */
+function legacySha256Hash(password: string, salt: string): string {
+  let value = password + salt;
+  for (let i = 0; i < LEGACY_SHA256_ITERATIONS; i++) {
+    const digest = createHash('sha256').update(value, 'utf8').digest('hex');
+    value = digest + salt;
+  }
+  return value.substring(0, 64);
+}
+
+function safeHexEqual(left: string, right: string): boolean {
+  if (!/^[a-f0-9]+$/i.test(left) || !/^[a-f0-9]+$/i.test(right) || left.length !== right.length) return false;
+  return timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
+}
+
 export async function verifyAdmin(username: string, password: string): Promise<AdminIdentity | null> {
   const normalized = username.trim().toLowerCase();
   if (!normalized || !password || password.length > 256) return null;
+
   const admins = await getAdminRecords();
   const admin = admins.find((a) => a.username.toLowerCase() === normalized);
-  // Do a dummy scrypt for unknown users to reduce username-enumeration timing differences.
-  if (!admin || !admin.active || !/^[a-f0-9]{128}$/.test(admin.passwordHash) || !/^[a-f0-9]{32,128}$/i.test(admin.salt)) {
+  if (
+    !admin ||
+    !admin.active ||
+    (!/^[a-f0-9]{64}$/.test(admin.passwordHash) && !/^[a-f0-9]{128}$/.test(admin.passwordHash)) ||
+    !/^[a-f0-9]{32,128}$/i.test(admin.salt)
+  ) {
+    // Dummy work for unknown or malformed accounts.
     scryptSync(password, 'shoeshop-invalid-user-dummy-salt', SCRYPT_KEY_LENGTH);
     return null;
   }
-  const actual = scryptSync(password, admin.salt, SCRYPT_KEY_LENGTH);
-  const expected = Buffer.from(admin.passwordHash, 'hex');
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+
+  let verified = false;
+  const isLegacyHash = /^[a-f0-9]{64}$/.test(admin.passwordHash);
+
+  if (isLegacyHash) {
+    const candidate = legacySha256Hash(password, admin.salt);
+    verified = safeHexEqual(candidate, admin.passwordHash);
+  } else {
+    const actual = scryptSync(password, admin.salt, SCRYPT_KEY_LENGTH).toString('hex');
+    verified = safeHexEqual(actual, admin.passwordHash);
+  }
+
+  if (!verified) return null;
+
+  // Upgrade a legacy SHA-256 record to scrypt after a successful login.
+  // If the sheet write fails, keep the successful login; the legacy hash
+  // remains verifiable on the next login.
+  if (isLegacyHash) {
+    try {
+      const newSalt = randomBytes(16).toString('hex');
+      const newHash = scryptSync(password, newSalt, SCRYPT_KEY_LENGTH).toString('hex');
+      await updateRow('Admins', admin.rowNumber, [
+        admin.username,
+        newHash,
+        newSalt,
+        admin.role,
+        'TRUE',
+      ]);
+    } catch {
+      // Do not block a valid login because an optional hash upgrade failed.
+    }
+  }
+
   return { username: admin.username, role: admin.role };
 }
 

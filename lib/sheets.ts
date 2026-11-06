@@ -59,7 +59,20 @@ export async function appendRow(tab: string, values: unknown[]) {
 }
 export async function updateRow(tab: string, rowNumber: number, values: unknown[]) {
   const api = sheetsClient();
-  await api.spreadsheets.values.update({ spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID!.trim(), range: `'${tab.replace(/'/g, "''")}'!A${rowNumber}:Z${rowNumber}`, valueInputOption: 'USER_ENTERED', requestBody: { values: [values] } });
+  // Match the update range to the supplied row width (e.g. A:E for Admins).
+  let endColumn = '';
+  let columnNumber = values.length;
+  while (columnNumber > 0) {
+    const remainder = (columnNumber - 1) % 26;
+    endColumn = String.fromCharCode(65 + remainder) + endColumn;
+    columnNumber = Math.floor((columnNumber - 1) / 26);
+  }
+  await api.spreadsheets.values.update({
+    spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID!.trim(),
+    range: `'${tab.replace(/'/g, "''")}'!A${rowNumber}:${endColumn}${rowNumber}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [values] },
+  });
 }
 export async function ensureHistory() {
   const rows = await readRows('History');

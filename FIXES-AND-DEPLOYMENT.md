@@ -20,3 +20,14 @@ Replace the repository contents with this folder, commit and push, then wait for
 - Admins tab must have headers: `Username`, `PasswordHash`, `Salt`, `Role`, `Active`.
 - Inventory tab should have the user's existing headers, including `ID`, `Picture`, `Target Price`, `Status`, `Category`, and `size`.
 - Drive image files must be shared as Anyone with the link / Viewer.
+
+
+## Admin login compatibility update
+
+The login verifier now supports the legacy Google Apps Script password format used by the existing Admins tab:
+- SHA-256 repeated 10,000 times, appending the salt after each digest.
+- 64-character hexadecimal stored hash and the existing salt.
+- On a successful legacy login, the account's hash is automatically upgraded to scrypt and the new hash/salt are written back to the same Admins row.
+- Existing usernames, roles, Active flags, and passwords are preserved during this migration.
+
+Do not run `npm run admins:setup` for this fix. It replaces the Admins tab and prompts for new passwords.

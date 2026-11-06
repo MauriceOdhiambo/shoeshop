@@ -16,14 +16,15 @@ function columns(headers: unknown[]) {
 }
 
 export async function GET() {
-  if (!await requireAdmin(['Super Admin', 'Admin'])) return NextResponse.json({ success: false }, { status: 401 });
+  const actor = await requireAdmin(['Super Admin', 'Admin']);
+  if (!actor) return NextResponse.json({ success: false }, { status: 401 });
   try {
     await ensureInventoryColumns();
     const rows = await readRows('Inventory');
     const c = columns(rows[0] ?? []);
     const shoes = rows.slice(1).filter(r => r[c.id]).map((r, i) => ({
       rowNumber: i + 2, id: String(r[c.id]), picture: driveImageUrl(r[c.picture]), originalPicture: String(r[c.picture] ?? ''),
-      buyingPrice: Number(r[c.buying]) || 0, size: String(r[c.size] ?? ''), targetPrice: Number(r[c.target]) || 0,
+      ...(actor.role === 'Super Admin' ? { buyingPrice: Number(r[c.buying]) || 0 } : {}), size: String(r[c.size] ?? ''), targetPrice: Number(r[c.target]) || 0,
       status: String(r[c.status] ?? 'Available'), payment: String(r[c.payment] ?? ''), priceSold: Number(r[c.sold]) || 0,
       comment: String(r[c.comment] ?? ''), category: String(r[c.category] ?? 'General'), stockType: r[c.stock],
       hotSale: ['true', 'yes', '1'].includes(String(r[c.hot] ?? '').toLowerCase()), salePrice: Number(r[c.sale]) || 0, reservedDate: String(r[c.reserved] ?? ''),
@@ -39,8 +40,10 @@ export async function POST(req: NextRequest) {
   if (!await requireAdmin(['Super Admin', 'Admin'])) return NextResponse.json({ success: false }, { status: 401 });
   try {
     const b = await req.json();
-    const buy = Number(b.buyingPrice), target = Number(b.targetPrice), size = String(b.size ?? '').trim();
-    if (!size || !Number.isFinite(buy) || buy < 0 || !Number.isFinite(target) || target < 0) return NextResponse.json({ success: false, message: 'Enter a valid size, buying price and selling price.' }, { status: 400 });
+    const actor = await requireAdmin(['Super Admin', 'Admin']);
+    if (!actor) return NextResponse.json({ success: false }, { status: 401 });
+    const buy = actor.role === 'Super Admin' ? Number(b.buyingPrice) : 0, target = Number(b.targetPrice), size = String(b.size ?? '').trim();
+    if (!size || (actor.role === 'Super Admin' && (!Number.isFinite(buy) || buy < 0)) || !Number.isFinite(target) || target < 0) return NextResponse.json({ success: false, message: 'Enter a valid size and selling price.' }, { status: 400 });
     const headers = await ensureInventoryColumns();
     const rows = await readRows('Inventory');
     const c = columns(headers);
@@ -79,6 +82,13 @@ export async function PATCH(req: NextRequest) {
       if (b.status === 'Reserved' && previousStatus !== 'reserved') row[c.reserved] = new Date().toISOString();
       if (b.status === 'Available') row[c.reserved] = '';
       if (b.status === 'Sold' && previousStatus !== 'sold') row[c.date] = new Date().toISOString();
+    }
+    if (b.buyingPrice !== undefined) {
+      const actor = await requireAdmin(['Super Admin']);
+      if (!actor) return NextResponse.json({ success: false, message: 'Super Admin access required to view or change buying costs.' }, { status: 403 });
+      const buying = Number(b.buyingPrice);
+      if (!Number.isFinite(buying) || buying < 0) return NextResponse.json({ success: false, message: 'Enter a valid buying price.' }, { status: 400 });
+      row[c.buying] = buying;
     }
     if (b.priceSold !== undefined) { const sold = Number(b.priceSold); if (!Number.isFinite(sold) || sold < 0) return NextResponse.json({ success: false, message: 'Enter a valid sold price.' }, { status: 400 }); row[c.sold] = sold || ''; }
     if (b.payment !== undefined) row[c.payment] = String(b.payment);

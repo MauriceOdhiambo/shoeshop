@@ -44,14 +44,15 @@ export default function Home() {
 
   async function book(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!selected) return;
-    setBusy(true); setMsg(''); const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    setBusy(true); setMsg(''); const form = new FormData(formElement);
     try {
       const response = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shoeId: selected.id, name: form.get('name'), phone: form.get('phone'), location: form.get('location'), comment: form.get('comment') }) });
       const raw = await response.text(); let data: any;
       try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error(`Booking API returned non-JSON (HTTP ${response.status}).`); }
       if (!response.ok) throw new Error(data.message || `Booking failed (HTTP ${response.status}).`);
       setMsg(`Thank you. Your enquiry reference is ${data.orderId}. We will contact you shortly.`);
-      (event.currentTarget as HTMLFormElement).reset();
+      formElement.reset();
     } catch (error) { setMsg(error instanceof Error ? error.message : 'Booking failed.'); }
     finally { setBusy(false); }
   }
@@ -59,21 +60,9 @@ export default function Home() {
   return <>
     <header className="topbar"><div className="topbar-in"><div className="brand">SHOE<span>STUDIO.</span></div><div className="top-actions"><a className="linkbtn" href="/admin">Admin portal ↗</a></div></div></header>
     <main className="shell store-shell">
-      <section className="store-hero">
-        <div className="store-hero-copy">
-          <div className="eyebrow">SHOE STUDIO · FOOTWEAR EDIT</div>
-          <h1>Good shoes.<br/><em>Great every day.</em></h1>
-          <p>Explore the collection, find your size and enquire about the pair that feels right.</p>
-          <a className="hero-cta" href="#collection">Explore the collection <span>↘</span></a>
-        </div>
-        <div className="hero-art" aria-label="Shoe Studio collection highlights">
-          <div className="hero-art-panel"><span className="hero-art-label">THE SHOE STUDIO EDIT</span><span className="hero-art-mark">S<span>.</span></span><span className="hero-art-bottom">STYLE THAT<br/>MOVES WITH YOU</span></div>
-          <div className="hero-art-note"><strong>01 / 03</strong><span>Find your<br/>next favourite</span></div>
-        </div>
-      </section>
-      <div className="collection-heading" id="collection"><div><div className="eyebrow">SHOP THE COLLECTION</div><h2>Find your pair</h2></div><span className="collection-count">{filtered.length} styles to explore</span></div>
+      <div className="collection-heading" id="collection"><div><div className="eyebrow">SHOE STUDIO COLLECTION</div><h2>Shop footwear</h2></div><span className="collection-count">{filtered.length} pairs available to browse</span></div>
       <div className="filters"><input aria-label="Search shoes" placeholder="Search by shoe ID, category or size" value={search} onChange={(e) => setSearch(e.target.value)}/><select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)}><option value="">All categories</option>{categories.map((item) => <option key={item}>{item}</option>)}</select><select aria-label="Size" value={size} onChange={(e) => setSize(e.target.value)}><option value="">All sizes</option>{sizes.map((item) => <option key={item}>{item}</option>)}</select><input aria-label="Maximum price" type="number" placeholder="Max price (KSh)" value={max} onChange={(e) => setMax(e.target.value)}/><button className="btn secondary" onClick={() => { setSearch(''); setCategory(''); setSize(''); setMax(''); }}>Reset</button></div>
-      <div className="eyebrow" style={{ marginBottom: 14 }}>Shop collection · {filtered.length} items · Available first</div>
+      <div className="collection-meta">Browse the latest available pairs. Select a shoe to enquire.</div>
       <div className="grid">{loading ? <div className="empty">Loading current stock…</div> : filtered.length === 0 ? <div className="empty">No shoes match your filters. Please try another search.</div> : filtered.map((shoe) => {
         const currentPrice = shoe.hotSale && shoe.salePrice > 0 && shoe.salePrice < shoe.targetPrice ? shoe.salePrice : shoe.targetPrice;
         const available = shoe.status.toLowerCase() === 'available';

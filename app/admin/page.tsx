@@ -182,8 +182,12 @@ export default function Admin() {
     </section></main>
   </>;
 
-  const sold = shoes.filter((shoe) => shoe.status.toLowerCase() === 'sold').length;
+  const soldShoes = shoes.filter((shoe) => shoe.status.toLowerCase() === 'sold');
+  const sold = soldShoes.length;
   const available = shoes.filter((shoe) => shoe.status.toLowerCase() === 'available').length;
+  const reserved = shoes.filter((shoe) => shoe.status.toLowerCase() === 'reserved').length;
+  const revenue = soldShoes.reduce((total, shoe) => total + Number(shoe.priceSold || 0), 0);
+  const grossProfit = soldShoes.reduce((total, shoe) => total + Number(shoe.priceSold || 0) - Number(shoe.buyingPrice || 0), 0);
   const isSuperAdmin = currentAdmin?.role === 'Super Admin';
 
   return <>
@@ -191,10 +195,10 @@ export default function Admin() {
     <main className="shell admin-shell">
       <div className="admin-head"><div><div className="eyebrow">YOUR BUSINESS AT A GLANCE</div><h1>Good day, {currentAdmin?.username}.</h1><p className="muted">Here is what is happening across Shoe Studio today.</p></div><button className="btn secondary refresh-btn" onClick={() => refresh().catch((e) => setNotice(e.message))}>↻ <span>Refresh data</span></button></div>
       {notice && <div className="notice">{notice}</div>}
-      <div className="stats"><div className="stat"><span className="stat-icon">▦</span><small>TOTAL INVENTORY</small><strong>{shoes.length}</strong><span className="stat-foot">All listed pairs</span></div><div className="stat"><span className="stat-icon available-icon">✓</span><small>AVAILABLE NOW</small><strong>{available}</strong><span className="stat-foot">Ready for customers</span></div><div className="stat"><span className="stat-icon sold-icon">↗</span><small>PAIRS SOLD</small><strong>{sold}</strong><span className="stat-foot">Completed sales</span></div><div className="stat"><span className="stat-icon enquiry-icon">✉</span><small>CUSTOMER ENQUIRIES</small><strong>{bookings.length}</strong><span className="stat-foot">Bookings received</span></div></div>
+      <div className="stats"><div className="stat"><span className="stat-icon">▦</span><small>TOTAL INVENTORY</small><strong>{shoes.length}</strong><span className="stat-foot">Pairs recorded</span></div><div className="stat"><span className="stat-icon available-icon">✓</span><small>AVAILABLE</small><strong>{available}</strong><span className="stat-foot">Ready for customers</span></div><div className="stat"><span className="stat-icon enquiry-icon">◷</span><small>RESERVED</small><strong>{reserved}</strong><span className="stat-foot">Awaiting collection</span></div><div className="stat"><span className="stat-icon sold-icon">↗</span><small>PAIRS SOLD</small><strong>{sold}</strong><span className="stat-foot">Completed sales</span></div><div className="stat"><span className="stat-icon revenue-icon">KSh</span><small>SALES REVENUE</small><strong>KSh {revenue.toLocaleString("en-KE")}</strong><span className="stat-foot">Recorded sold prices</span></div><div className="stat"><span className="stat-icon profit-icon">↗</span><small>GROSS PROFIT</small><strong>KSh {grossProfit.toLocaleString("en-KE")}</strong><span className="stat-foot">Revenue less buying cost</span></div></div>
       <div className="admin-layout">
         <nav className="side">
-          <div className="side-label">WORKSPACE</div><button className={tab === 'bookings' ? 'active' : ''} onClick={() => setTab('bookings')}><span>▤</span> Customer bookings</button>
+          <div className="side-label">WORKSPACE</div><button className={tab === 'bookings' ? 'active' : ''} onClick={() => setTab('bookings')}><span>▤</span> Customer bookings <b className="nav-count">{bookings.length}</b></button>
           <button className={tab === 'inventory' ? 'active' : ''} onClick={() => setTab('inventory')}><span>▦</span> Inventory</button>
           <button className={tab === 'add' ? 'active' : ''} onClick={() => setTab('add')}><span>＋</span> Add new shoe</button>
           {isSuperAdmin && <><div className="side-label side-label-spaced">SETTINGS</div><button className={tab === 'admins' ? 'active' : ''} onClick={() => { setTab('admins'); loadAdmins().catch((e) => setNotice(e.message)); }}><span>♙</span> Administrator accounts</button></>}
@@ -235,7 +239,7 @@ export default function Admin() {
           </> : <p className="muted">You do not have permission to view this section.</p>}
         </section>
       </div>
-      <footer className="footer">Administrator access uses an HTTP-only session cookie. Permissions are checked against the Admins sheet on every protected request.</footer>
+      <footer className="admin-footer">SHOE STUDIO <span>·</span> OPERATIONS WORKSPACE</footer>
     </main>
   </>;
 }

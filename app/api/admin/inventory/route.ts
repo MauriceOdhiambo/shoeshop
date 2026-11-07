@@ -60,7 +60,25 @@ export async function POST(req: NextRequest) {
     row[c.target] = target; row[c.status] = 'Available'; row[c.comment] = String(b.comment ?? ''); row[c.category] = String(b.category ?? 'General'); row[c.stock] = Number(b.stockType) || batch;
     row[c.hot] = b.hotSale ? 'TRUE' : 'FALSE'; row[c.pending] = 0;
     await appendRow('Inventory', row);
-    return NextResponse.json({ success: true, id: row[c.id] });
+    let subscriberEmailSent = false;
+    let subscriberEmailError: string | null = null;
+    try {
+      const endpoint = process.env.GOOGLE_DRIVE_UPLOAD_WEB_APP_URL?.trim();
+      const token = process.env.GOOGLE_DRIVE_UPLOAD_TOKEN?.trim();
+      if (!endpoint || !token) throw new Error('Email bridge environment variables are missing.');
+      const subscribers = await readRows('Subscribers');
+      const sh = subscribers[0] ?? [];
+      const emailCol = headerColumn(sh, ['Email'], 0), activeCol = headerColumn(sh, ['Active'], 3), tokenCol = headerColumn(sh, ['Unsubscribe Token'], 4);
+      const active = subscribers.slice(1).filter(r => ['true','yes','1','active'].includes(String(r[activeCol] ?? 'TRUE').toLowerCase()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(r[emailCol] ?? '').trim()));
+      const subscribersForEmail = active.map(r => ({ email:String(r[emailCol]).trim(), unsubscribeToken:String(r[tokenCol] ?? '') }));
+      if (subscribersForEmail.length) {
+        const response = await fetch(endpoint, { method:'POST', redirect:'follow', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'notifyNewStock', token, subscribers:subscribersForEmail, siteUrl:process.env.NEXT_PUBLIC_SITE_URL || 'https://shoeshop-ecru.vercel.app', shoe:{ id:row[c.id], picture, category:row[c.category], size, price:target } }) });
+        const raw = await response.text(); const result = raw ? JSON.parse(raw) : {};
+        if (!response.ok || result.success !== true) throw new Error(result.message || `Email bridge returned HTTP ${response.status}.`);
+        subscriberEmailSent = true;
+      }
+    } catch (error) { subscriberEmailError = error instanceof Error ? error.message : 'Could not send new-stock email.'; console.error('New stock email failed:', subscriberEmailError); }
+    return NextResponse.json({ success: true, id: row[c.id], subscriberEmailSent, subscriberEmailError });
   } catch (e) { return NextResponse.json({ success: false, message: e instanceof Error ? e.message : 'Could not add shoe.' }, { status: 500 }); }
 }
 

@@ -50,3 +50,14 @@
 @keyframes securityFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes securityRiseIn{from{opacity:0;transform:translateY(9px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:560px){.security-modal{padding:22px 18px;border-radius:15px}.security-modal h2{font-size:22px}.security-actions{flex-direction:column-reverse}.security-actions button{width:100%}}
+
+/* Customer email subscription and consent controls */
+.stock-alert-signup{margin:56px auto 36px;padding:30px;max-width:1180px;border:1px solid var(--line,#2b3942);border-radius:18px;background:var(--panel,#142128);display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,440px);gap:18px 32px;align-items:center}
+.stock-alert-signup h2{margin:8px 0;font-size:clamp(22px,3vw,30px);color:var(--text,#f4f5f6)}
+.stock-alert-signup form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stock-alert-signup form input{min-width:0;width:100%;padding:13px 14px;border:1px solid var(--line,#35434c);border-radius:9px;background:var(--surface,#0e171d);color:var(--text,#f4f5f6)}
+.stock-alert-signup form button{grid-column:1/-1}
+.stock-alert-signup .small{grid-column:1/-1;margin:0;font-size:12px}
+.subscribe-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0 16px;color:var(--muted,#98a7af);font-size:13px;line-height:1.5}
+.subscribe-consent input{margin-top:3px;accent-color:#bd7b46}
+@media(max-width:700px){.stock-alert-signup{grid-template-columns:1fr;padding:20px;margin:36px 16px}.stock-alert-signup form{grid-template-columns:1fr}.stock-alert-signup form button{grid-column:auto}}

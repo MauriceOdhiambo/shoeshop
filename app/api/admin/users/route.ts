@@ -33,16 +33,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const username = String(body.username ?? '').trim();
     const password = String(body.password ?? '');
+    const email = String(body.email ?? '').trim();
     const role = String(body.role ?? 'Admin');
     if (!/^[a-zA-Z0-9._-]{2,40}$/.test(username)) return NextResponse.json({ success: false, message: 'Username must be 2–40 characters and use letters, numbers, dots, underscores or hyphens.' }, { status: 400 });
     if (!['Admin', 'Super Admin'].includes(role)) return NextResponse.json({ success: false, message: 'Invalid administrator role.' }, { status: 400 });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ success:false, message:'Enter a valid administrator email address.' }, { status:400 });
     const rows = await readRows('Admins');
-    const headers = (rows[0] ?? []).map(String);
+    let headers = (rows[0] ?? []).map(String);
     const usernameCol = headerIndex(headers, 'Username');
     if (usernameCol < 0) return NextResponse.json({ success: false, message: 'Admins sheet is not configured. Run npm run admins:setup.' }, { status: 500 });
     if (rows.slice(1).some((r) => String(r[usernameCol] ?? '').trim().toLowerCase() === username.toLowerCase())) return NextResponse.json({ success: false, message: 'That username already exists.' }, { status: 409 });
     const { salt, passwordHash } = await hashPassword(password);
-    await appendRow('Admins', [username, passwordHash, salt, role, 'TRUE']);
+    let emailCol = headerIndex(headers, 'mail') >= 0 ? headerIndex(headers, 'mail') : headerIndex(headers, 'email');
+    if (emailCol < 0) { headers = [...headers, 'mail']; emailCol = headers.length - 1; await updateRow('Admins', 1, headers); }
+    const newRow = Array(Math.max(headers.length, 5, emailCol + 1)).fill('');
+    newRow[headerIndex(headers, 'Username')] = username; newRow[headerIndex(headers, 'PasswordHash')] = passwordHash; newRow[headerIndex(headers, 'Salt')] = salt; newRow[headerIndex(headers, 'Role')] = role; newRow[headerIndex(headers, 'Active')] = 'TRUE'; if (emailCol >= 0) newRow[emailCol] = email;
+    await appendRow('Admins', newRow);
     return NextResponse.json({ success: true, message: `Administrator ${username} created.` });
   } catch (e) {
     return NextResponse.json({ success: false, message: e instanceof Error ? e.message : 'Could not create administrator.' }, { status: 400 });

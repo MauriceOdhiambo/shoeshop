@@ -11,7 +11,7 @@ function columns(headers: unknown[]) {
     payment: headerColumn(headers, ['method Payment', 'Payment Method'], 6), sold: headerColumn(headers, ['price sold', 'Sold Price', 'Price Sold'], 7),
     margin: headerColumn(headers, ['Profit Margin'], 8), comment: headerColumn(headers, ['comment', 'Comment'], 9),
     date: headerColumn(headers, ['Date', 'Sold Date'], 10), category: headerColumn(headers, ['Category'], 11), stock: headerColumn(headers, ['Stock Type', 'Batch'], 12),
-    hot: headerColumn(headers, ['Hot Sale', 'HotSale'], 13), sale: headerColumn(headers, ['Sale Price', 'Promotional Price'], 14), reserved: headerColumn(headers, ['Reserved Date'], 15),
+    hot: headerColumn(headers, ['Hot Sale', 'HotSale'], 13), sale: headerColumn(headers, ['Sale Price', 'Promotional Price'], 14), reserved: headerColumn(headers, ['Reserved Date'], 15), pending: headerColumn(headers, ['Pending Amount', 'Balance Due', 'Outstanding Balance'], 16),
   };
 }
 
@@ -27,7 +27,7 @@ export async function GET() {
       ...(actor.role === 'Super Admin' ? { buyingPrice: Number(r[c.buying]) || 0 } : {}), size: String(r[c.size] ?? ''), targetPrice: Number(r[c.target]) || 0,
       status: String(r[c.status] ?? 'Available'), payment: String(r[c.payment] ?? ''), priceSold: Number(r[c.sold]) || 0,
       comment: String(r[c.comment] ?? ''), category: String(r[c.category] ?? 'General'), stockType: r[c.stock],
-      hotSale: ['true', 'yes', '1'].includes(String(r[c.hot] ?? '').toLowerCase()), salePrice: Number(r[c.sale]) || 0, reservedDate: String(r[c.reserved] ?? ''),
+      hotSale: ['true', 'yes', '1'].includes(String(r[c.hot] ?? '').toLowerCase()), pendingAmount: Number(r[c.pending]) || 0, reservedDate: String(r[c.reserved] ?? ''),
     })).sort((a, b) => {
       const rank = (s: typeof a) => s.status.toLowerCase() === 'available' ? 0 : s.status.toLowerCase() === 'reserved' ? 1 : 2;
       return rank(a) - rank(b) || Number(b.hotSale) - Number(a.hotSale) || a.id.localeCompare(b.id);
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const batch = rows.slice(1).reduce((m, r) => Math.max(m, Number(r[c.stock]) || 0), 0) + 1;
     const picture = String(b.picture ?? '').trim();
     if (!picture) return NextResponse.json({ success: false, message: 'Upload a shoe photo to Google Drive before saving this item.' }, { status: 400 });
-    const row = Array(Math.max(headers.length, 16)).fill('');
+    const row = Array(Math.max(headers.length, 17)).fill('');
     // Keep the established Shoe Studio ID format: SHOE-<13-digit timestamp>.
     // Advance by 1ms if an item was already created in the same millisecond.
     let idTimestamp = Date.now();
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     while (existingIds.has(`SHOE-${idTimestamp}`)) idTimestamp += 1;
     row[c.id] = `SHOE-${idTimestamp}`; row[c.picture] = picture; row[c.buying] = buy; row[c.size] = size;
     row[c.target] = target; row[c.status] = 'Available'; row[c.comment] = String(b.comment ?? ''); row[c.category] = String(b.category ?? 'General'); row[c.stock] = Number(b.stockType) || batch;
-    row[c.hot] = b.hotSale ? 'TRUE' : 'FALSE'; row[c.sale] = Number(b.salePrice) || 0;
+    row[c.hot] = b.hotSale ? 'TRUE' : 'FALSE'; row[c.pending] = 0;
     await appendRow('Inventory', row);
     return NextResponse.json({ success: true, id: row[c.id] });
   } catch (e) { return NextResponse.json({ success: false, message: e instanceof Error ? e.message : 'Could not add shoe.' }, { status: 500 }); }
@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest) {
     if (b.payment !== undefined) row[c.payment] = String(b.payment);
     if (b.comment !== undefined) row[c.comment] = String(b.comment);
     if (b.hotSale !== undefined) row[c.hot] = b.hotSale ? 'TRUE' : 'FALSE';
-    if (b.salePrice !== undefined) { const sale = Number(b.salePrice); if (!Number.isFinite(sale) || sale < 0) return NextResponse.json({ success: false, message: 'Enter a valid promotional price.' }, { status: 400 }); row[c.sale] = sale || ''; }
+    if (b.pendingAmount !== undefined) { const pending = Number(b.pendingAmount); if (!Number.isFinite(pending) || pending < 0) return NextResponse.json({ success: false, message: 'Enter a valid outstanding balance.' }, { status: 400 }); row[c.pending] = pending || ''; }
     const cost = Number(row[c.buying]) || 0, sold = Number(row[c.sold]) || 0;
     row[c.margin] = sold ? (sold - cost) / sold : '';
     await updateRow('Inventory', index + 1, row);

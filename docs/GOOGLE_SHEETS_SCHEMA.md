@@ -1,6 +1,6 @@
 # Google Sheets schema
 
-The new application expects these exact tab names and column order. Confirm the actual live workbook before launch.
+The application reads these headers by name and can append the `Pending Amount` column if it is missing. Keep the existing tabs and historical rows; do not run setup scripts against a live workbook.
 
 ## Inventory
 
@@ -22,10 +22,11 @@ The new application expects these exact tab names and column order. Confirm the 
 | N | Hot Sale | `TRUE` or `FALSE` promotional badge |
 | O | Sale Price | Optional promotional selling price |
 | P | Reserved Date | Timestamp when the item was marked Reserved |
+| Q | Pending Amount | Outstanding customer balance in KSh; zero when fully paid |
 
 ## Orders
 
-`Order ID`, `Shoe ID`, `Customer Name`, `Phone`, `Location`, `Comment`, `Date`, `Status`
+`Order ID`, `Shoe ID`, `Customer Name`, `Phone`, `Location`, `Comment`, `Date`, `Status` (booking API joins Shoe ID to Inventory to show the photo/category/size)
 
 ## Admins
 
@@ -36,8 +37,9 @@ The new application expects these exact tab names and column order. Confirm the 
 | C | Salt | Unique random salt for that administrator |
 | D | Role | `Super Admin` or `Admin` |
 | E | Active | `TRUE` or `FALSE` |
+| F | mail | Administrator email address for new-order notifications |
 
-Run `npm run admins:setup` once to replace the legacy `Email` / `Password` columns. The script asks for new passwords and writes only hashes and salts. Do not store plain-text passwords in this tab.
+Do not rerun the admin setup script on the live workbook. Keep each active administrator email in the `mail` column; new admin accounts should be created through the Super Admin screen with an email address.
 
 ## History
 

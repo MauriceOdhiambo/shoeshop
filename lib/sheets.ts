@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 
-export const INVENTORY_HEADERS = ['ID','Picture','Buying Price','size','Target Price','Status','method Payment','price sold','Profit Margin','comment','Date','Category','Stock Type','Hot Sale','Sale Price','Reserved Date'];
+export const INVENTORY_HEADERS = ['ID','Picture','Buying Price','size','Target Price','Status','method Payment','price sold','Profit Margin','comment','Date','Category','Stock Type','Hot Sale','Sale Price','Reserved Date','Pending Amount'];
 export const ORDER_HEADERS = ['Order ID','Shoe ID','Customer Name','Phone','Location','Comment','Date','Status'];
 export const HISTORY_HEADERS = ['Timestamp','Shoe ID','Field Changed','Old Value','New Value','Changed By','Full Row Snapshot','Action'];
 

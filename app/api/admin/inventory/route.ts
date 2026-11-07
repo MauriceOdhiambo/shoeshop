@@ -70,9 +70,11 @@ export async function POST(req: NextRequest) {
       const sh = subscribers[0] ?? [];
       const emailCol = headerColumn(sh, ['Email'], 0), activeCol = headerColumn(sh, ['Active'], 3), tokenCol = headerColumn(sh, ['Unsubscribe Token'], 4);
       const active = subscribers.slice(1).filter(r => ['true','yes','1','active'].includes(String(r[activeCol] ?? 'TRUE').toLowerCase()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(r[emailCol] ?? '').trim()));
-      const subscribersForEmail = active.map(r => ({ email:String(r[emailCol]).trim(), unsubscribeToken:String(r[tokenCol] ?? '') }));
+      const subscriberMap = new Map<string, { email:string; unsubscribeToken:string }>();
+      active.forEach(r => { const email = String(r[emailCol] ?? '').trim().toLowerCase(); const unsubscribeToken = String(r[tokenCol] ?? ''); if (email && unsubscribeToken.length >= 24 && !subscriberMap.has(email)) subscriberMap.set(email, { email, unsubscribeToken }); });
+      const subscribersForEmail = [...subscriberMap.values()];
       if (subscribersForEmail.length) {
-        const response = await fetch(endpoint, { method:'POST', redirect:'follow', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'notifyNewStock', token, subscribers:subscribersForEmail, siteUrl:process.env.NEXT_PUBLIC_SITE_URL || 'https://shoeshop-ecru.vercel.app', shoe:{ id:row[c.id], picture, category:row[c.category], size, price:target } }) });
+        const response = await fetch(endpoint, { method:'POST', redirect:'follow', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'notifyNewStock', token, subscribers:subscribersForEmail, siteUrl:(process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, ''), shoe:{ id:row[c.id], picture, category:row[c.category], size, price:target } }) });
         const raw = await response.text(); const result = raw ? JSON.parse(raw) : {};
         if (!response.ok || result.success !== true) throw new Error(result.message || `Email bridge returned HTTP ${response.status}.`);
         subscriberEmailSent = true;

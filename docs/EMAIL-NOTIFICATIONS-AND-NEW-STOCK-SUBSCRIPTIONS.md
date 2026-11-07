@@ -26,3 +26,10 @@ Customers can subscribe from the storefront footer, or tick the optional new-sto
 4. Click the unsubscribe link and confirm the subscriber row changes to `FALSE`.
 
 Bookings remain saved if email delivery fails. Check Vercel logs and Apps Script > Executions for the reported reason.
+
+
+## Troubleshooting and delivery safeguards (November 2026)
+- Set `NEXT_PUBLIC_SITE_URL` in Vercel to the exact live production URL (for example, the current Vercel production domain). Redeploy after changing it. New unsubscribe links use the canonical site URL; links in emails sent before this correction may still point to the old deployment and should be replaced by a fresh test email.
+- New-stock mail deduplicates subscriber addresses and sends at most one announcement per calendar day, even if several shoes are added. The message links to the complete live collection. The Apps Script day marker is set only after at least one email is successfully sent.
+- Order notification errors are written to Vercel Function Logs with the order reference. Apps Script sends to each active administrator address separately and reports individual delivery failures. Verify `emailSent` and `emailError` in the `/api/bookings` response and inspect Apps Script > Executions.
+- Admin bookings and inventory tables include search and status/promotion filters.

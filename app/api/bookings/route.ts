@@ -24,16 +24,17 @@ async function notifyAdmins(payload: Record<string, unknown>): Promise<{ sent: b
   try {
     const admins = await readRows('Admins');
     const headers = admins[0] ?? [];
-    const emailCol = headerColumn(headers, ['mail', 'email', 'e-mail'], -1);
+    const emailCol = headerColumn(headers, ['mail', 'email', 'e-mail', 'notification email', 'email address'], -1);
     const activeCol = headerColumn(headers, ['Active', 'Status'], -1);
     if (emailCol < 0) return { sent:false, error:'Admins sheet has no mail or Email column.' };
-    const recipients = [...new Set(admins.slice(1).filter((r) => activeCol < 0 || ['true','yes','1','active'].includes(String(r[activeCol] ?? '').trim().toLowerCase())).map((r) => String(r[emailCol] ?? '').trim()).filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
+    const recipients = [...new Set(admins.slice(1).filter((r) => activeCol < 0 || ['true','yes','1','active'].includes(String(r[activeCol] ?? '').trim().toLowerCase())).map((r) => String(r[emailCol] ?? '').trim().toLowerCase()).filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
     if (!recipients.length) return { sent:false, error:'No valid email addresses found in active Admins rows.' };
     const response = await fetch(endpoint, { method:'POST', redirect:'follow', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'notifyOrder', token, recipients, order:payload }) });
     const raw = await response.text();
     let result: any = {};
     try { result = raw ? JSON.parse(raw) : {}; } catch { return { sent:false, error:`Apps Script returned a non-JSON response (HTTP ${response.status}). Redeploy the latest Web App version and verify its /exec URL.` }; }
     if (!response.ok || result.success !== true) return { sent:false, error:String(result.message || `Apps Script rejected email request (HTTP ${response.status}).`) };
+    if (Number(result.sentTo || 0) < 1) return { sent:false, error:'Apps Script accepted the request but did not confirm any email recipients.' };
     return { sent:true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not contact the email service.';
@@ -77,6 +78,8 @@ export async function POST(req: NextRequest) {
 
     const picture = String(shoe[ic.picture] ?? '');
     const notification = await notifyAdmins({ orderId, orderDate, customerName:name, customerPhone:phone, customerEmail, customerLocation:location, customerComment:comment, shoeId, shoeCategory:String(shoe[ic.category]??'Shoe'), shoeSize:String(shoe[ic.size]??''), shoePrice:String(shoe[ic.target]??''), shoePicture:picture });
+    if (!notification.sent) console.error('Shoe Studio admin order email was not sent:', { orderId, error: notification.error });
+    else console.info('Shoe Studio admin order email sent:', { orderId });
     return NextResponse.json({ success:true, orderId, emailSent:notification.sent, emailError:notification.error || null, subscribed:!!(customerEmail && body.subscribeNewStock === true) });
   } catch (e) { return NextResponse.json({ success:false, message:e instanceof Error ? e.message : 'Booking could not be submitted.' }, { status:500 }); }
 }

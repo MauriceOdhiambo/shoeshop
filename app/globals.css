@@ -61,3 +61,10 @@
 .subscribe-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0 16px;color:var(--muted,#98a7af);font-size:13px;line-height:1.5}
 .subscribe-consent input{margin-top:3px;accent-color:#bd7b46}
 @media(max-width:700px){.stock-alert-signup{grid-template-columns:1fr;padding:20px;margin:36px 16px}.stock-alert-signup form{grid-template-columns:1fr}.stock-alert-signup form button{grid-column:auto}}
+
+/* Admin table filters: compact, consistent controls for operational tables. */
+.admin-table-filters { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:16px 0; padding:14px; border:1px solid var(--line, #2b3a43); border-radius:12px; background:rgba(255,255,255,.025); }
+.admin-table-filters input { flex:1 1 260px; min-width:190px; }
+.admin-table-filters select { flex:0 1 220px; min-width:170px; }
+.admin-table-filters input, .admin-table-filters select { min-height:42px; }
+@media (max-width:640px) { .admin-table-filters { align-items:stretch; } .admin-table-filters input, .admin-table-filters select, .admin-table-filters button { width:100%; flex:1 1 100%; } }
